@@ -1,0 +1,15 @@
+--- sprite 0 (8x13) ---
+gameover
+function
+sawtooth
+breached
+sawtooth
+sawtooth
+breached
+gameover
+sawtooth
+sawtooth
+sawtooth
+SOUTHERN
+BREACHED
+

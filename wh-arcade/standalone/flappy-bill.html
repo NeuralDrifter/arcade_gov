@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>flappy-bill</title>
+<style>
+:root {
+  /* Palette slugs mirror theme.json so each value can be traced to its source. */
+  --deep-navy-blue: #0d132d;
+  --navy-blue: #151a30;
+  --navy-accent: #141f4d;
+  --zodiac-blue: #0b1b33;
+  --vivid-cyan: #0dcbff;
+  --money: #389800;
+  --amber: #ffbd00;
+  --pale-gray: #d9dee8;
+  --stone: #e8e6e0;
+
+  --bg: var(--deep-navy-blue);
+  --panel: var(--navy-blue);
+  --ink: var(--stone);
+  --muted: #8d97ad;
+  --accent: var(--amber);
+
+  --sans: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --serif: "Instrument Serif", Georgia, serif;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Page basics, keyed to the page classes rather than to `body`.
+ *
+ * These pages get pasted into pages that are not ours — a WordPress block, say
+ * — and a bare `body` selector in the stylesheet that travels with them
+ * restyles the host page's background, colour and type. On the class instead,
+ * everything a page needs rides on the element that carries the class and
+ * nothing outside it is touched. That also decouples the layout from the body
+ * tag: a wrapper element with the class is now a complete game page, which
+ * matters because the body tag is exactly what an editor drops when the markup
+ * is inlined. */
+
+.game-body,
+.menu-body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* ---------- game page ---------- */
+
+.game-body {
+  display: flex;
+  flex-direction: column;
+  /* Small viewport unit: on mobile the URL bar collapses and 100vh overflows,
+     which pushes the footer off-screen and scrolls the canvas mid-shot. */
+  height: 100svh;
+}
+
+.game-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--panel);
+  flex: 0 0 auto;
+}
+
+/* The footer is now the only bar on a standard game page, and it reads left to
+ * right: sound, then the controls it sits beside, then the brand. flex-start
+ * rather than space-between so the first two stay adjacent instead of being
+ * flung to opposite ends; the brand is pushed back out on its own. */
+footer.game-bar {
+  justify-content: flex-start;
+}
+
+footer.game-bar .brand {
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+
+/* The controls hint is the one footer item that can afford to lose room, so it
+   is the one allowed to. A flex item defaults to min-width:auto, which refuses
+   to shrink past its longest word — that is what was squeezing the pills either
+   side of it rather than the text between them. */
+footer.game-bar .hint {
+  min-width: 0;
+}
+
+.game-bar h1 {
+  margin: 0;
+  /* Instrument Serif is the site's display face; the title is the one place on
+     these pages that warrants it. */
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+.back {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.back:hover,
+.back:focus-visible {
+  color: var(--vivid-cyan);
+}
+
+.back:focus-visible {
+  outline: 2px solid var(--vivid-cyan);
+  outline-offset: 4px;
+}
+
+.stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: block;
+  position: relative;
+  /* The crosshair is drawn in-canvas, so hide the OS cursor over the field. */
+  cursor: none;
+  /* Stop a drag from selecting the page or triggering pull-to-refresh. */
+  user-select: none;
+  touch-action: none;
+}
+
+.pixel-screen {
+  display: block;
+  image-rendering: pixelated;
+}
+
+/* ---------- embedding ---------- */
+
+/* Narrow phones. Everything in the footer steps down together so the three
+   items still sit on one row at 340px, which is the narrowest we support. */
+@media (max-width: 420px) {
+  footer.game-bar {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  footer.game-bar .toggle {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  footer.game-bar .brand {
+    padding: 3px 7px;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+
+  footer.game-bar .hint {
+    font-size: 11px;
+  }
+}
+
+/* The bars cost a fixed ~74px. In a full window that is nothing; in a 360px
+   embed it is a fifth of the game. So they give ground as height runs out,
+   rather than squeezing the playfield to keep a title visible. */
+
+@media (max-height: 560px) {
+  .game-bar {
+    padding: 4px 10px;
+  }
+
+  .game-bar h1 {
+    font-size: 15px;
+  }
+
+  .game-bar .hint {
+    display: none;
+  }
+}
+
+@media (max-height: 400px) {
+  /* Below this the chrome costs more than it tells anyone. The keyboard
+     shortcuts it documents still work. */
+  .game-bar {
+    display: none;
+  }
+
+  /* Except the sound toggle. It used to have a home in the header bar, so
+     dropping the footer only cost a duplicate; now the footer is the only bar
+     and hiding it would leave a short touch device — which has no M key to
+     fall back on — with no way to mute at all. The bar collapses to just the
+     button. */
+  footer.game-bar {
+    display: flex;
+    padding: 2px 8px;
+    background: none;
+  }
+
+  footer.game-bar .hint,
+  footer.game-bar .brand {
+    display: none;
+  }
+}
+
+.embed .game-bar {
+  display: none;
+}
+
+/* ---------- menu page ---------- */
+
+.menu-body {
+  display: grid;
+  place-items: center;
+  min-height: 100svh;
+  padding: 24px;
+}
+
+.menu {
+  width: min(560px, 100%);
+}
+
+.menu h1 {
+  margin: 0 0 6px;
+  font-family: var(--serif);
+  font-size: 40px;
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.game-list {
+  list-style: none;
+  margin: 24px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.game-list a {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  background: var(--panel);
+  border-radius: 8px;
+  color: var(--ink);
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+
+.game-list a:hover,
+.game-list a:focus-visible {
+  border-color: var(--vivid-cyan);
+}
+
+.game-list span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* ---------- branding ---------- */
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border: 1px solid var(--navy-accent);
+  border-radius: 999px;
+  background: var(--zodiac-blue);
+  color: var(--ink);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.brand:hover,
+.brand:focus-visible {
+  border-color: var(--amber);
+}
+
+.brand-mark {
+  color: var(--accent);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.brand-text {
+  font-weight: 600;
+}
+
+/* On the menu the lockup leads rather than sitting in a corner. */
+.brand-lead {
+  margin-top: 14px;
+  padding: 6px 14px;
+  font-size: 12px;
+}
+
+/* ---------- sound toggle ---------- */
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--navy-accent);
+  border-radius: 999px;
+  background: var(--zodiac-blue);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  /* "Sound on" broke across two lines in a narrow footer, which doubled the
+     bar's height and shoved the playfield up. A pill label is single-line by
+     definition, and the pill is not the item that should be giving ground. */
+  white-space: nowrap;
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+
+.toggle:hover {
+  border-color: var(--accent);
+}
+
+/* Visible focus ring: the button is reachable by keyboard and must show it. */
+.toggle:focus-visible {
+  outline: 2px solid var(--vivid-cyan);
+  outline-offset: 2px;
+}
+
+.toggle-icon {
+  color: var(--accent);
+  line-height: 1;
+}
+
+/* Muted state is carried by aria-pressed, so the styling follows the same
+   source of truth the screen reader uses rather than a separate class. */
+.toggle[aria-pressed="false"] {
+  color: var(--muted);
+}
+
+.toggle[aria-pressed="false"] .toggle-icon {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+</style>
+</head>
+<body class="game-body">
+
+<div class="game-body">
+    <main id="game" class="stage" aria-label="Flappy Bill playfield"></main>
+    <footer class="game-bar">
+      <button id="sound" class="toggle" type="button" aria-pressed="true">
+        <span class="toggle-icon" aria-hidden="true">♪</span>
+        <span class="toggle-text">Sound on</span>
+      </button>
+      <span class="hint">click or space to flap &middot; M mute &middot; R restart</span>
+      <a class="brand" href="https://www.whitehouse.gov/" rel="noopener">
+        <span class="brand-mark" aria-hidden="true">★</span>
+        <span class="brand-text">Trump Accounts</span>
+      </a>
+    </footer>
+</div></div></div>
+</main>
+
+
+<footer class="alignfull site-footer wp-block-template-part">
+<div
+	class="wp-block-whitehouse-footer wp-block-whitehouse-footer-v2">
+	<div class="wp-block-whitehouse-footer__inner-container">
+
+		<div class="wp-block-whitehouse-footer__navigation has-3-menus-with-end">
+			<div class="wp-block-whitehouse-footer__navigation--inner-container">
+
+									<div class="wp-block-whitehouse-footer__menu">
+						<nav class="wp-block-whitehouse-footer__menu-navigation">
+							<h2 class="wp-block-whitehouse-footer__menu-heading">About</h2><ul id="menu-about" class="menu"><li id="menu-item-33104" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-33104"><a href="https://www.whitehouse.gov/administration/" data-wp-on-async--mouseenter="callbacks.handlePopoverMenuMouseover" data-wp-on-async--mouseleave="callbacks.handlePopoverMenuMouseout">Administration</a></li>
+<li id="menu-item-22561" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-22561"><a href="https://www.whitehouse.gov/contact/" data-wp-on-async--mouseenter="callbacks.handlePopoverMenuMouseover" data-wp-on-async--mouseleave="callbacks.handlePopoverMenuMouseout">Contact</a></li>
+<li id="menu-item-33103" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-33103"><a href="https://www.whitehouse.gov/internships/" data-wp-on-async--mouseenter="callbacks.handlePopoverMenuMouseover" data-wp-on-async--mouseleave="callbacks.handlePopoverMenuMouseout">Internships</a></li>
+<li id="menu-item-33105" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-33105"><a target="_blank" rel="noopener" href="https://www.whitehouse.gov/subscribe" data-wp-on-async--mouseenter="callbacks.handlePopoverMenuMouseover" data-wp-on-async--mouseleave="callbacks.handlePopoverMenuMouseout">Stay Informed</a></li>
+<li id="menu-item-34488" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-34488"><a href="https://www.whitehouse.gov/privacy/" data-wp-on-async--mouseenter="callbacks.handlePopoverMenuMouseover" data-wp-on-async--mouseleave="callbacks.handlePopoverMenuMouseout">Privacy Policy</a></li>
+</ul>						</nav>
+					</div>
+									<div class="wp-block-whitehouse-footer__menu">
+						<nav class="wp-block-whitehouse-footer__menu-navigation">
+							<h2 class="wp-block-whitehouse-footer__menu-heading">Media</h2><ul id="menu-media" class="menu"><li id="menu-item-33107" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-33107"><a href="https://www.whitehouse.gov/news/" data-wp-on-async--mouseenter="callbacks.handlePopoverMenuMouseover" data-wp-on-async--mouseleave="callbacks.handlePopoverMenuMouseout">News</a></li>
+<li id="menu-item-8468" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-8468"><a href="https://www.whitehouse.gov/gallery/" data-wp-on-async--mouseenter="callbacks.handlePopoverMenuMouseover" data-wp-on-async--mouseleave="callbacks.handlePopoverMenuMouseout">Gallery</a></li>
+<li id="menu-item-12364" class="menu-item menu-item-type-post_type_archive menu-item-object-past_event menu-item-12364"><a href="https://www.whitehouse.gov/videos/" data-wp-on-async--mouseenter="callbacks.handlePopoverMenuMouseover" data-wp-on-async--mouseleave="callbacks.handlePopoverMenuMouseout">Video Library</a></li>
+<li id="menu-item-33108" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-33108"><a href="https://www.whitehouse.gov/mediabias/" data-wp-on-async--mouseenter="callbacks.handlePopoverMenuMouseover" data-wp-on-async--mouseleave="callbacks.handlePopoverMenuMouseout">Media Offenders</a></li>
+<li id="menu-item-33106" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-33106"><a href="https://www.whitehouse.gov/wire/" data-wp-on-async--mouseenter="callbacks.handlePopoverMenuMouseover" data-wp-on-async--mouseleave="callbacks.handlePopoverMenuMouseout">White House Wire</a></li>
+</ul>						</nav>
+					</div>
+									<div class="wp-block-whitehouse-footer__menu">
+						<nav class="wp-block-whitehouse-footer__menu-navigation">
+							<h2 class="wp-block-whitehouse-footer__menu-heading">Initiatives</h2><ul id="menu-initiatives" class="menu"><li id="menu-item-33109" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-33109"><a target="_blank" rel="noopener" href="https://www.freedom250.org/" data-wp-on-async--mouseenter="callbacks.handlePopoverMenuMouseover" data-wp-on-async--mouseleave="callbacks.handlePopoverMenuMouseout">Freedom 250</a></li>
+<li id="menu-item-33110" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-33110"><a href="https://www.whitehouse.gov/investments/" data-wp-on-async--mouseenter="callbacks.handlePopoverMenuMouseover" data-wp-on-async--mouseleave="callbacks.handlePopoverMenuMouseout">Investments</a></li>
+<li id="menu-item-33111" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-33111"><a href="https://www.whitehouse.gov/obbb/" data-wp-on-async--mouseenter="callbacks.handlePopoverMenuMouseover" data-wp-on-async--mouseleave="callbacks.handlePopoverMenuMouseout">Working Families Tax Cuts</a></li>
+<li id="menu-item-33112" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-33112"><a target="_blank" rel="noopener" href="https://ai.gov" data-wp-on-async--mouseenter="callbacks.handlePopoverMenuMouseover" data-wp-on-async--mouseleave="callbacks.handlePopoverMenuMouseout">AI.Gov</a></li>
+<li id="menu-item-33113" class="menu-item menu-item-type-post_type menu-item-object-issue menu-item-33113"><a href="https://www.whitehouse.gov/priorities/doge/" data-wp-on-async--mouseenter="callbacks.handlePopoverMenuMouseover" data-wp-on-async--mouseleave="callbacks.handlePopoverMenuMouseout">DOGE</a></li>
+</ul>						</nav>
+					</div>
+				
+									<div class="wp-block-whitehouse-footer__menu-end">
+
+													<div class="wp-block-whitehouse-footer__newsletter">
+								
+													<h3 class="wp-block-whitehouse-footer__newsletter-heading wp-block-heading">Subscribe to the WH Newsletter</h3>
+													
+<div
+	class="wp-block-whitehouse-newsletter__form wp-block-whitehouse-newsletter-field" data-wp-interactive="whitehouse-newsletter" data-wp-context="{ &quot;formAction&quot;: &quot;https://wdg.us10.list-manage.com/subscribe/post?u=255057cc391ca0facb169b81c&#038;id=004f59aa22&#038;f_id=00b5c6e5f0&quot;, &quot;responses&quot;: [], &quot;submitting&quot;: false }">
+	<form action="https://wdg.us10.list-manage.com/subscribe/post?u=255057cc391ca0facb169b81c&#038;id=004f59aa22&#038;f_id=00b5c6e5f0" 
+		method="get" 
+		data-wp-bind--action="context.formAction"
+		data-wp-on--submit="actions.submit"
+		data-wp-watch="callbacks.complete"
+		data-wp-on-window--whmccallback="callbacks.transportComplete"
+	>
+		<fieldset class="wp-block-whitehouse-newsletter__form--fieldset">
+			<div class="wp-block-whitehouse-newsletter__form--field">
+				<input type="email" value="" name="EMAIL" placeholder="Your email" title="Your email" required>
+			</div>
+			<div class="wp-block-whitehouse-newsletter__form--field honeypot" style="position: absolute; left: -5000px;" aria-hidden="true">
+				<label for="mailchimp-signup-form-7">Please leave blank.</label>
+				<input type="text" name="b_255057cc391ca0facb169b81c_004f59aa22" tabindex="-1" value="" id="mailchimp-signup-form-7">
+			</div>
+			<div class="wp-block-whitehouse-newsletter__form--submit-wrapper">
+				<input type="submit" value="Sign Up" class="wp-element-button">
+			</div>
+		</fieldset>
+	</form>
+	<div class="wp-block-whitehouse-newsletter__form--responses">
+		<template
+			data-wp-each="state.errors"
+		>
+			<div data-wp-text="state.message" class="wp-block-whitehouse-newsletter__form--response error"></div>
+		</template>
+		<template
+			data-wp-each="state.successes"
+		>
+			<div data-wp-text="state.message" class="wp-block-whitehouse-newsletter__form--response success"></div>
+		</template>
+	</div>
+</div>
+							</div>
+						
+													<div class="wp-block-whitehouse-footer__updates">
+								<svg class="wp-block-whitehouse-footer__updates-icon" stroke-width="0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+									<path d="M11 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h6zM5 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H5z" />
+									<path d="M8 14a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" />
+								</svg>
+								<a href="https://my.community.com/realdonaldtrump?t=VICTORY" target="_blank" rel="noopener">Click here</a> <span>or text</span> <span style="color: #FF0000">45470</span> to receive updates							</div>
+						
+													<div class="wp-block-whitehouse-footer__cta-section wp-block-whitehouse-footer__cta-section--app">
+																	<h3 class="wp-block-whitehouse-footer__cta-heading">Download The White House App:</h3>
+																<div class="wp-block-whitehouse-footer__cta-buttons">
+																			<a class="wp-block-whitehouse-footer__cta-button" href="https://apps.apple.com/us/app/the-white-house/id6759938088">
+																							<span class="wp-block-whitehouse-footer__cta-icon-badge">
+													<img decoding="async" src="https://www.whitehouse.gov/wp-content/uploads/2026/08/apple.png" alt="" />
+												</span>
+																						Available On The App Store										</a>
+																												<a class="wp-block-whitehouse-footer__cta-button" href="https://play.google.com/store/apps/details?id=gov.whitehouse.app&#038;hl=en_US">
+																							<span class="wp-block-whitehouse-footer__cta-icon-badge">
+													<img decoding="async" src="https://www.whitehouse.gov/wp-content/uploads/2026/08/play.png" alt="" />
+												</span>
+																						Get It On Google Play										</a>
+																	</div>
+							</div>
+						
+													<div class="wp-block-whitehouse-footer__cta-section wp-block-whitehouse-footer__cta-section--notification">
+								<div class="wp-block-whitehouse-footer__cta-heading-row">
+																			<h3 class="wp-block-whitehouse-footer__cta-heading">Get Updates Straight to Your Desktop</h3>
+									
+																			<div class="wp-block-whitehouse-footer__browser-badges">
+																							<span class="wp-block-whitehouse-footer__browser-badges-label">Available On</span>
+																																																											<img
+														class="wp-block-whitehouse-footer__browser-badge"
+														src="https://www.whitehouse.gov/wp-content/uploads/2026/08/chrome.png"
+														alt=""
+													/>
+																																																												<img
+														class="wp-block-whitehouse-footer__browser-badge"
+														src="https://www.whitehouse.gov/wp-content/uploads/2026/08/safari.png"
+														alt=""
+													/>
+																																																												<img
+														class="wp-block-whitehouse-footer__browser-badge"
+														src="https://www.whitehouse.gov/wp-content/uploads/2026/08/firefox.png"
+														alt=""
+													/>
+																																	</div>
+																	</div>
+								<div class="wp-block-whitehouse-footer__cta-buttons">
+																			<a class="wp-block-whitehouse-footer__cta-button" href="https://www.whitehouse.gov/get-the-browser-extension/">
+																							<span class="wp-block-whitehouse-footer__cta-icon-badge">
+													<img decoding="async" src="https://www.whitehouse.gov/wp-content/uploads/2026/08/exten.png" alt="" />
+												</span>
+																						Download Browser Extension										</a>
+																												<div class="wp-block-whitehouse-footer__cta-button-wrapper">
+											<div class="wp-block-whitehouse-notifications-opt-in">
+	<button
+		type="button"
+		class="wp-block-whitehouse-notifications-opt-in__button"
+		data-app-id="4166924e-05fd-4182-8e88-819400f99676"
+		data-safari-web-id=""
+		data-sdk-url="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
+		data-sdk-path="https://www.whitehouse.gov/wp-content/plugins/onesignal-free-web-push-notifications/sdk_files/"
+		data-sw-scope="/wp-content/plugins/onesignal-free-web-push-notifications/sdk_files/push/onesignal/"
+		data-sw-path="OneSignalSDKWorker.js"
+		data-success-text="Notifications enabled"
+		data-subscribed-text="Turn off notifications"
+		data-blocked-text="Notifications are blocked in your browser settings"
+		aria-pressed="false"
+	>Enable Desktop Notifications</button>
+	<span class="wp-block-whitehouse-notifications-opt-in__status" role="status" aria-live="polite"></span>
+	</div>
+
+										</div>
+																	</div>
+							</div>
+						
+					</div>
+				
+			</div>
+		</div>
+
+		<div class="wp-block-whitehouse-footer__bottom">
+			<div class="wp-block-whitehouse-footer__bottom--inner-container">
+
+				<a
+					class="wp-block-whitehouse-footer__logo"
+					href="https://www.whitehouse.gov"
+					rel="home"
+					title="The White House"
+				>
+					<svg class="wp-block-whitehouse-footer__logo-icon" xmlns="http://www.w3.org/2000/svg" width="300" height="34.819" viewBox="0 0 300 34.819">
+	<path d="M4.96 34.35q-.704.001-.703-.514c0-.345.201-.528.608-.56l2.105-.325c.622-.094 1.046-.25 1.26-.47q.329-.376.327-1.354V3.084c0-.438-.094-.746-.281-.934q-.282-.282-1.167-.282-1.728 0-3.41 1.498Q2.015 4.86 1.504 8.18l-.232 1.542q-.095.608-.653.607-.703.001-.608-.795l.42-8.461Q.526 0 1.271 0c.22 0 .42.063.608.188.188.094.501.2.935.326.469.125 1.197.188 2.194.188h10.424q1.493 0 2.15-.188.702-.186.983-.326.327-.188.608-.188c.5 0 .777.358.84 1.073l.42 8.46q.096.794-.608.796-.56.002-.652-.607L18.94 8.18q-.468-3.32-2.15-4.814-1.683-1.497-3.46-1.498c-.59 0-.983.094-1.166.282q-.282.282-.281.934v28.043q-.001.978.326 1.354.375.33 1.26.47l2.106.326q.608.048.607.559.001.512-.701.514zm17.15 0q-.704.001-.702-.514c0-.282.2-.465.607-.56l1.073-.187q.98-.187 1.26-.514c.22-.219.327-.653.327-1.31V3.785q.001-.98-.326-1.309-.282-.328-1.26-.514l-1.074-.188q-.608-.14-.607-.563-.001-.515.701-.514h8.55q.703 0 .702.563.001.422-.514.514l-1.26.188q-.98.14-1.31.514-.28.375-.281 1.355v11.732c0 .438.219.653.652.653h9.253c.438 0 .652-.219.652-.653V3.831q.001-.979-.326-1.355-.282-.374-1.26-.514l-1.261-.188q-.515-.092-.514-.514-.002-.563.702-.563h8.555q.7-.001.701.514.002.423-.607.563l-1.073.188q-.98.186-1.31.514c-.187.22-.281.653-.281 1.31v27.48q0 .979.281 1.31c.22.218.653.388 1.31.513l1.073.188q.608.142.607.559.001.515-.701.514h-8.555c-.465 0-.702-.188-.702-.564q-.001-.42.514-.514l1.26-.187q.98-.14 1.26-.514.328-.375.327-1.355V18.272q-.001-.655-.652-.653h-9.253c-.438 0-.652.22-.652.653v12.944q0 .979.281 1.355c.22.25.653.42 1.31.514l1.26.187q.516.093.514.514.001.564-.701.564zm25.047 0q-.702.001-.701-.514c0-.282.2-.465.607-.56l1.073-.187q.98-.187 1.26-.514c.22-.219.327-.653.327-1.31V3.785q.001-.98-.326-1.309-.282-.328-1.26-.514l-1.074-.188q-.608-.14-.607-.563-.001-.515.701-.514H62.86c.716 0 1.109.358 1.167 1.073l.375 7.76c.063.527-.138.795-.607.795-.376 0-.59-.201-.653-.608l-.282-1.73q-.516-3.177-2.105-4.626-1.59-1.496-4.394-1.497-1.87 0-2.614.563-.703.515-.702 1.868V15.56c0 .438.219.653.653.653h2.337q2.057-.001 2.526-2.195l.469-2.338q.187-.702.795-.608.516.094.514.796v10.517q.001.703-.514.796-.608.094-.795-.608l-.47-2.289q-.328-1.634-.934-2.15-.562-.515-1.636-.514h-2.288c-.438 0-.653.22-.653.653v11.733q.001 1.681.84 2.432c.59.5 1.65.746 3.179.746s2.883-.389 3.973-1.171q1.682-1.215 2.338-4.488l.563-2.757q.14-.61.702-.608c.438 0 .621.263.563.795l-.47 8.318q-.093 1.073-1.166 1.073H47.157Zm46.785.469a.62.62 0 0 1-.376-.139q-.188-.14-.281-.608l-3.599-14.49q-.046-.374-.281-.327-.234 0-.326.327l-4.019 14.49q-.139.468-.326.608a.44.44 0 0 1-.326.139.83.83 0 0 1-.42-.139q-.189-.14-.282-.608l-7.384-29.63q-.326-1.306-.746-1.823c-.25-.344-.684-.576-1.31-.702l-.702-.138c-.438-.094-.652-.295-.652-.608q-.001-.47.701-.47h7.527q.655-.001.653.515.001.422-.702.563l-.514.094q-.791.14-1.028.563c-.125.25-.107.715.045 1.403l5.515 22.81q.094.326.282.326.233 0 .326-.327l2.106-7.616q.515-1.777.514-3.272c0-.997-.157-2.105-.47-3.316l-1.962-7.992c-.219-.872-.438-1.498-.653-1.869q-.28-.56-.795-.652l-.702-.139c-.438-.094-.652-.295-.652-.608q-.001-.469.701-.469h6.4c.439 0 .653.17.653.514q.001.423-.701.563l-.514.094c-.407.063-.653.233-.747.514-.062.282-.013.765.139 1.448l1.591 6.683q.094.327.282.326.233.001.326-.326l1.68-5.704q.517-1.775.376-2.337-.093-.563-.514-.608l-.514-.094q-.703-.141-.702-.563.002-.515.653-.514h4.438q.794-.001.796.514c0 .313-.264.496-.796.563l-.514.045c-.407.03-.746.281-1.028.746q-.376.703-.84 2.288l-1.775 6.124c-.344 1.153-.527 2.244-.563 3.272q0 1.494.42 3.316l2.106 8.788q.093.327.281.326.235.001.282-.326l5.372-21.544q.656-2.71-.84-2.946l-.514-.094q-.704-.14-.702-.607.002-.47.653-.47h5.234c.527 0 .795.17.795.514 0 .313-.263.496-.795.563l-.514.045q-.61.048-1.073.747c-.282.438-.545 1.197-.796 2.288l-7.245 29.21q-.093.467-.281.607a.62.62 0 0 1-.376.139zm10.646-.47q-.7 0-.701-.513c0-.282.2-.465.607-.56l1.073-.187q.98-.187 1.26-.514c.22-.219.327-.653.327-1.31V3.785q.001-.98-.326-1.309-.282-.328-1.26-.514l-1.074-.188q-.608-.14-.607-.563-.001-.515.701-.514h8.555c.465 0 .702.188.702.563q.001.422-.514.514l-1.26.188q-.98.14-1.31.514-.282.375-.282 1.355v11.732c0 .438.22.653.653.653h9.252q.655-.001.653-.653V3.831q.001-.979-.327-1.355-.28-.374-1.26-.514l-1.26-.188q-.516-.092-.514-.514-.001-.563.701-.563h8.555q.704-.001.702.514.001.423-.608.563l-1.073.188q-.979.186-1.31.514c-.187.22-.28.653-.28 1.31v27.48q0 .979.28 1.31c.22.218.653.388 1.31.513l1.073.188q.61.142.608.559.002.515-.702.514h-8.555q-.702 0-.701-.564-.001-.42.514-.514l1.26-.187q.98-.14 1.26-.514.329-.375.327-1.355V18.272q-.002-.655-.653-.653h-9.252q-.655.002-.653.653v12.944q0 .979.282 1.355.327.374 1.31.514l1.26.187q.515.093.514.514.001.564-.702.564zm25.044 0q-.703 0-.702-.513c0-.282.201-.465.608-.56l1.077-.187q.98-.187 1.26-.514c.22-.219.327-.653.327-1.31V3.785q.001-.98-.326-1.309-.282-.328-1.26-.514l-1.078-.188q-.61-.14-.608-.563 0-.515.702-.514h8.461c.465 0 .702.17.702.514q.001.423-.608.563l-1.073.188q-.979.186-1.31.514c-.187.22-.281.653-.281 1.31v27.48q0 .979.282 1.31c.219.218.652.388 1.31.513l1.072.188q.61.142.608.559 0 .515-.702.514zm15.099 0q-.704 0-.702-.513c0-.345.201-.528.608-.56l2.105-.325c.621-.094 1.046-.25 1.26-.47q.328-.376.327-1.354V3.084c0-.438-.094-.746-.282-.934q-.282-.282-1.167-.282-1.728 0-3.41 1.498-1.684 1.494-2.194 4.814l-.233 1.542q-.096.608-.652.607c-.47 0-.67-.263-.608-.795l.42-8.461q.095-1.073.84-1.073c.22 0 .42.063.608.188.188.094.496.2.934.326.47.125 1.198.188 2.195.188h10.423q1.494 0 2.15-.188.704-.186.983-.326c.22-.125.42-.188.608-.188q.749 0 .84 1.073l.42 8.46q.095.794-.607.796c-.376 0-.59-.2-.653-.607l-.232-1.542q-.468-3.32-2.15-4.814-1.683-1.497-3.46-1.498c-.59 0-.983.094-1.166.282q-.282.283-.282.934v28.043q-.001.978.326 1.354.375.33 1.26.47l2.106.326q.61.048.608.559.002.512-.702.514zm17.15 0c-.465 0-.702-.17-.702-.513 0-.282.201-.465.608-.56l1.073-.187q.978-.187 1.26-.514c.22-.219.326-.653.326-1.31V3.785q.001-.98-.326-1.309-.282-.328-1.26-.514l-1.073-.188q-.61-.14-.608-.563-.002-.515.702-.514h15.702c.715 0 1.108.358 1.166 1.073l.376 7.76c.062.527-.139.795-.608.795-.376 0-.59-.201-.653-.608l-.281-1.73q-.514-3.177-2.101-4.626-1.59-1.496-4.394-1.497-1.869 0-2.619.563-.704.515-.702 1.868V15.56c0 .438.22.653.653.653h2.338q2.057-.001 2.525-2.195l.47-2.338q.185-.702.795-.608.515.094.514.796v10.517q.001.703-.514.796-.609.094-.796-.608l-.47-2.289q-.325-1.634-.933-2.15-.564-.515-1.636-.514h-2.289c-.438 0-.652.22-.652.653v11.733q0 1.681.84 2.432c.59.5 1.65.746 3.178.746s2.883-.389 3.974-1.171q1.681-1.215 2.337-4.488l.563-2.757q.14-.61.702-.608c.438 0 .621.263.559.795l-.465 8.318q-.094 1.073-1.167 1.073h-16.412zm28.186 0q-.704 0-.702-.513c0-.282.201-.465.608-.56l1.072-.187q.98-.187 1.26-.514c.22-.219.327-.653.327-1.31V3.785q.001-.98-.326-1.309-.282-.328-1.26-.514l-1.073-.188q-.61-.14-.608-.563-.001-.515.702-.514h8.55q.704 0 .702.563.001.422-.514.514l-1.26.188q-.98.14-1.31.514-.282.375-.282 1.355v11.732c0 .438.22.653.653.653h9.252c.438 0 .653-.219.653-.653V3.831q0-.979-.327-1.355-.281-.374-1.26-.514l-1.26-.188q-.516-.092-.515-.514 0-.563.702-.563h8.555c.465 0 .702.17.702.514q.001.423-.608.563l-1.073.188q-.979.186-1.31.514c-.187.22-.281.653-.281 1.31v27.48q0 .979.282 1.31c.219.218.652.388 1.31.513l1.072.188q.61.142.608.559 0 .515-.702.514h-8.555q-.703 0-.702-.564-.001-.42.514-.514l1.26-.187c.653-.094 1.078-.264 1.261-.514q.329-.375.327-1.355V18.272q-.002-.655-.653-.653h-9.252q-.655.002-.653.653v12.944q0 .979.282 1.355c.219.25.652.42 1.31.514l1.26.187q.515.093.514.514 0 .564-.702.564zm36.074.42c-1.497 0-2.896-.437-4.206-1.309q-1.964-1.353-3.46-3.692c-.965-1.56-1.729-3.379-2.288-5.466-.527-2.119-.795-4.394-.795-6.826q0-3.645.795-6.776c.564-2.087 1.323-3.91 2.289-5.466q1.495-2.385 3.46-3.692Q223.9.233 226.14.232c1.493 0 2.883.438 4.162 1.31q1.964 1.31 3.46 3.692c.996 1.555 1.76 3.38 2.288 5.466.563 2.088.84 4.345.84 6.776q-.002 3.648-.84 6.826-.793 3.131-2.289 5.466-1.495 2.34-3.46 3.692-1.916 1.309-4.16 1.31m0-1.26q3.32.001 5.19-3.973c1.247-2.646 1.868-6.67 1.868-12.06s-.626-9.395-1.868-12.01q-1.87-3.974-5.19-3.973c-2.212 0-3.91 1.323-5.189 3.973-1.247 2.62-1.868 6.62-1.868 12.01q-.001 8.085 1.868 12.06 1.917 3.974 5.19 3.973m24.642 1.26c-1.685 0-3.178-.388-4.488-1.166-1.278-.809-2.275-1.917-2.99-3.316-.715-1.435-1.077-3.071-1.077-4.908V3.786q.001-.98-.326-1.31-.282-.328-1.26-.514l-1.074-.188q-.608-.14-.608-.563 0-.515.702-.514h8.555c.465 0 .702.188.702.563q.001.422-.514.514l-1.26.188q-.939.14-1.261.514-.327.375-.326 1.355v21.593q.001 3.552 1.59 5.515 1.59 1.964 4.44 1.962c1.899 0 3.428-.652 4.487-1.962q1.588-1.964 1.587-5.515V4.764c0-1.68-.528-2.619-1.587-2.802l-1.26-.188q-.516-.092-.515-.514 0-.563.702-.563h6.731q.703-.001.702.514c0 .282-.2.47-.608.563l-1.077.188q-1.589.283-1.587 2.758v20.659q-.001 4.251-2.288 6.825-2.293 2.569-6.074 2.57h-.018zm19.88 0q-.93 0-2.104-.187a23 23 0 0 1-2.15-.465q-.98-.28-1.542-.608a2.4 2.4 0 0 1-.514-.375q-.14-.236-.139-.747l-.232-7.339c0-.621.2-.934.608-.934q.515.002.701.84l.42 1.775q1.591 6.683 5.936 6.682 2.34 0 3.692-1.542 1.402-1.59 1.404-4.439c0-1.9-.483-3.553-1.448-5.14-.935-1.586-2.445-3.164-4.533-4.72q-3.458-2.475-5.046-4.769-1.588-2.34-1.587-4.952.001-3.46 2.383-5.516C268.13.93 270.19.228 272.68.228q1.401-.001 2.708.326c.872.22 1.592.528 2.15.934q.281.187.42.42.188.234.188.608l.139 7.058c0 .527-.201.796-.608.796q-.422-.002-.608-.653l-.326-1.166c-.684-2.4-1.404-4.144-2.15-5.234q-1.074-1.682-3.133-1.681c-1.373 0-2.414.438-3.228 1.31-.777.871-1.166 2.105-1.166 3.691q.001 2.013 1.31 3.831 1.308 1.824 4.58 4.438 3.508 2.849 5.096 5.516c1.09 1.743 1.636 3.616 1.636 5.61q0 2.616-1.166 4.58-1.168 1.965-3.227 3.085-2.011 1.073-4.627 1.073zm11.282-.42q-.702 0-.701-.513c0-.282.2-.465.608-.56l1.072-.187c.653-.125 1.077-.295 1.26-.514.22-.219.327-.653.327-1.31V3.785q.001-.98-.326-1.309-.282-.328-1.26-.514l-1.073-.188q-.61-.14-.608-.563-.001-.515.701-.514h15.702q1.073 0 1.167 1.073l.375 7.76c.063.527-.138.795-.607.795q-.565.001-.653-.608l-.282-1.73q-.516-3.177-2.105-4.626-1.59-1.496-4.393-1.497-1.871 0-2.62.563-.7.515-.701 1.868V15.56c0 .438.219.653.652.653h2.338q2.057-.001 2.525-2.195l.47-2.338q.186-.702.795-.608.515.094.514.796v10.517q.001.703-.514.796-.609.094-.796-.608l-.469-2.289c-.219-1.09-.527-1.805-.934-2.15q-.563-.515-1.636-.514h-2.288q-.655.002-.653.653v11.733q.002 1.681.84 2.432c.595.5 1.654.746 3.178.746s2.883-.389 3.974-1.171q1.682-1.215 2.337-4.488l.564-2.757q.14-.61.701-.608c.438 0 .622.263.564.795l-.47 8.318q-.093 1.073-1.166 1.073h-16.409z" />
+</svg>
+				</a>
+
+				<div class="wp-block-whitehouse-footer__social-links">
+					
+
+<ul class="wp-block-social-links is-layout-flex wp-block-social-links-is-layout-flex">
+	<li class="wp-social-link wp-social-link-x  wp-block-social-link"><a rel="noopener nofollow" target="_blank" href="https://x.com/whitehouse" class="wp-block-social-link-anchor"><svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+    <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z" />
+</svg><span class="wp-block-social-link-label screen-reader-text">X</span></a></li>
+
+	<li class="wp-social-link wp-social-link-instagram  wp-block-social-link"><a rel="noopener nofollow" target="_blank" href="https://www.instagram.com/whitehouse/" class="wp-block-social-link-anchor"><svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+    <path d="M7.0301.084c-1.2768.0602-2.1487.264-2.911.5634-.7888.3075-1.4575.72-2.1228 1.3877-.6652.6677-1.075 1.3368-1.3802 2.127-.2954.7638-.4956 1.6365-.552 2.914-.0564 1.2775-.0689 1.6882-.0626 4.947.0062 3.2586.0206 3.6671.0825 4.9473.061 1.2765.264 2.1482.5635 2.9107.308.7889.72 1.4573 1.388 2.1228.6679.6655 1.3365 1.0743 2.1285 1.38.7632.295 1.6361.4961 2.9134.552 1.2773.056 1.6884.069 4.9462.0627 3.2578-.0062 3.668-.0207 4.9478-.0814 1.28-.0607 2.147-.2652 2.9098-.5633.7889-.3086 1.4578-.72 2.1228-1.3881.665-.6682 1.0745-1.3378 1.3795-2.1284.2957-.7632.4966-1.636.552-2.9124.056-1.2809.0692-1.6898.063-4.948-.0063-3.2583-.021-3.6668-.0817-4.9465-.0607-1.2797-.264-2.1487-.5633-2.9117-.3084-.7889-.72-1.4568-1.3876-2.1228C21.2982 1.33 20.628.9208 19.8378.6165 19.074.321 18.2017.1197 16.9244.0645 15.6471.0093 15.236-.005 11.977.0014 8.718.0076 8.31.0215 7.0301.0839m.1402 21.6932c-1.17-.0509-1.8053-.2453-2.2287-.408-.5606-.216-.96-.4771-1.3819-.895-.422-.4178-.6811-.8186-.9-1.378-.1644-.4234-.3624-1.058-.4171-2.228-.0595-1.2645-.072-1.6442-.079-4.848-.007-3.2037.0053-3.583.0607-4.848.05-1.169.2456-1.805.408-2.2282.216-.5613.4762-.96.895-1.3816.4188-.4217.8184-.6814 1.3783-.9003.423-.1651 1.0575-.3614 2.227-.4171 1.2655-.06 1.6447-.072 4.848-.079 3.2033-.007 3.5835.005 4.8495.0608 1.169.0508 1.8053.2445 2.228.408.5608.216.96.4754 1.3816.895.4217.4194.6816.8176.9005 1.3787.1653.4217.3617 1.056.4169 2.2263.0602 1.2655.0739 1.645.0796 4.848.0058 3.203-.0055 3.5834-.061 4.848-.051 1.17-.245 1.8055-.408 2.2294-.216.5604-.4763.96-.8954 1.3814-.419.4215-.8181.6811-1.3783.9-.4224.1649-1.0577.3617-2.2262.4174-1.2656.0595-1.6448.072-4.8493.079-3.2045.007-3.5825-.006-4.848-.0608M16.953 5.5864A1.44 1.44 0 1 0 18.39 4.144a1.44 1.44 0 0 0-1.437 1.4424M5.8385 12.012c.0067 3.4032 2.7706 6.1557 6.173 6.1493 3.4026-.0065 6.157-2.7701 6.1506-6.1733-.0065-3.4032-2.771-6.1565-6.174-6.1498-3.403.0067-6.156 2.771-6.1496 6.1738M8 12.0077a4 4 0 1 1 4.008 3.9921A3.9996 3.9996 0 0 1 8 12.0077" />
+</svg><span class="wp-block-social-link-label screen-reader-text">Instagram</span></a></li>
+
+	<li class="wp-social-link wp-social-link-tiktok  wp-block-social-link"><a rel="noopener nofollow" target="_blank" href="https://www.tiktok.com/@WhiteHouse" class="wp-block-social-link-anchor"><svg width="24" height="24" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path d="M16.708 0.027c1.745-0.027 3.48-0.011 5.213-0.027 0.105 2.041 0.839 4.12 2.333 5.563 1.491 1.479 3.6 2.156 5.652 2.385v5.369c-1.923-0.063-3.855-0.463-5.6-1.291-0.76-0.344-1.468-0.787-2.161-1.24-0.009 3.896 0.016 7.787-0.025 11.667-0.104 1.864-0.719 3.719-1.803 5.255-1.744 2.557-4.771 4.224-7.88 4.276-1.907 0.109-3.812-0.411-5.437-1.369-2.693-1.588-4.588-4.495-4.864-7.615-0.032-0.667-0.043-1.333-0.016-1.984 0.24-2.537 1.495-4.964 3.443-6.615 2.208-1.923 5.301-2.839 8.197-2.297 0.027 1.975-0.052 3.948-0.052 5.923-1.323-0.428-2.869-0.308-4.025 0.495-0.844 0.547-1.485 1.385-1.819 2.333-0.276 0.676-0.197 1.427-0.181 2.145 0.317 2.188 2.421 4.027 4.667 3.828 1.489-0.016 2.916-0.88 3.692-2.145 0.251-0.443 0.532-0.896 0.547-1.417 0.131-2.385 0.079-4.76 0.095-7.145 0.011-5.375-0.016-10.735 0.025-16.093z" /></svg><span class="wp-block-social-link-label screen-reader-text">TikTok</span></a></li>
+
+	<li class="wp-social-link wp-social-link-truth-social  wp-block-social-link"><a rel="noopener nofollow" target="_blank" href="https://truthsocial.com/@WhiteHouse" class="wp-block-social-link-anchor"><svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+    <path d="M24,7.3V1.8h-15.2v20.3h6.6V7.3h8.7Z" />
+    <path d="M0,1.8h6.3v5.5H0V1.8Z" />
+    <path d="M17.7,16.7h6.3v5.5h-6.3v-5.5Z" />
+</svg><span class="wp-block-social-link-label screen-reader-text">Share Icon</span></a></li>
+
+	<li class="wp-social-link wp-social-link-rumble  wp-block-social-link"><a rel="noopener nofollow" target="_blank" href="https://rumble.com/c/whitehouse" class="wp-block-social-link-anchor"><svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+	<path d="M14.4528 13.5458c0.8064 -0.6542 0.9297 -1.8381 0.2756 -2.6445a1.8802 1.8802 0 0 0 -0.2756 -0.2756 21.2127 21.2127 0 0 0 -4.3121 -2.776c-1.066 -0.51 -2.256 0.2 -2.4261 1.414a23.5226 23.5226 0 0 0 -0.14 5.5021c0.116 1.23 1.292 1.964 2.372 1.492a19.6285 19.6285 0 0 0 4.5062 -2.704v-0.008zm6.9322 -5.4002c2.0335 2.228 2.0396 5.637 0.014 7.8723A26.1487 26.1487 0 0 1 8.2946 23.846c-2.6848 0.6713 -5.4168 -0.914 -6.1662 -3.5781 -1.524 -5.2002 -1.3 -11.0803 0.17 -16.3045 0.772 -2.744 3.3521 -4.4661 6.0102 -3.832 4.9242 1.174 9.5443 4.196 13.0764 8.0121v0.002z"></path>
+</svg><span class="wp-block-social-link-label screen-reader-text">Share Icon</span></a></li>
+
+	<li class="wp-social-link wp-social-link-facebook  wp-block-social-link"><a rel="noopener nofollow" target="_blank" href="https://www.facebook.com/WhiteHouse/" class="wp-block-social-link-anchor"><svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+    <path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z" />
+</svg><span class="wp-block-social-link-label screen-reader-text">Facebook</span></a></li>
+
+	<li class="wp-social-link wp-social-link-youtube  wp-block-social-link"><a rel="noopener nofollow" target="_blank" href="https://www.youtube.com/@WhiteHouse" class="wp-block-social-link-anchor"><svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+	<path d="M11.99 3.6s-7.5 0-9.38.49A3.091 3.091 0 00.49 6.22C0 8.11 0 12.01 0 12.01s0 3.91.49 5.77a3.06 3.06 0 002.12 2.12c1.9.5 9.38.5 9.38.5s7.52 0 9.4-.49c1.02-.28 1.84-1.08 2.1-2.12.5-1.87.5-5.77.5-5.77s.01-3.91-.5-5.8a2.954 2.954 0 00-2.1-2.1c-1.88-.52-9.4-.52-9.4-.52zM9.61 8.41l6.24 3.6-6.24 3.59V8.41z" />
+</svg>
+<span class="wp-block-social-link-label screen-reader-text">YouTube</span></a></li>
+</ul>
+
+				</div>
+
+			</div>
+		</div>
+
+	</div>
+</div>
+</footer>
+</div>
+
+
+
+
+<script>
+(()=>{function De(e,l={}){let n=l.width??256,t=l.height??224,o=l.background===null?null:l.background??"#000",r=l.backdropTile??null,a=l.presentation==="smooth",k=Number(l.maxBackingScale??2),i=Number.isFinite(k)?Math.max(1,k):2,s=document.createElement("canvas");s.width=n,s.height=t;let h=s.getContext("2d");h.imageSmoothingEnabled=a;let f=document.createElement("canvas");f.className=a?"pixel-screen smooth-screen":"pixel-screen";let p=f.getContext("2d");p.imageSmoothingEnabled=a,e.appendChild(f);let c=1,d=0,u=0,w=null,v=.15;function g(x){if(x<1)return x;let A=Math.floor(x);return x-A<v?A:x}function y(){let x=e.getBoundingClientRect(),A=window.devicePixelRatio||1,P=Math.max(1,Math.floor(x.width*A)),U=Math.max(1,Math.floor(x.height*A));if(c=g(Math.min(P/n,U/t)),a){let ae=Math.min(i,Math.max(1,c)),z=Math.max(n,Math.round(n*ae)),Me=Math.max(t,Math.round(t*ae));(s.width!==z||s.height!==Me)&&(s.width=z,s.height=Me),h.setTransform(z/n,0,0,Me/t,0,0),h.imageSmoothingEnabled=!0}f.width=P,f.height=U,f.style.width=`${x.width}px`,f.style.height=`${x.height}px`,p.imageSmoothingEnabled=a,d=Math.max(0,Math.floor((P-n*c)/2)),u=Math.max(0,Math.floor((U-t*c)/2))}function T(x=0,A=0){o?(p.fillStyle=o,p.fillRect(0,0,f.width,f.height)):p.clearRect(0,0,f.width,f.height),r&&(w||(w=p.createPattern(r,"repeat")),w&&(p.fillStyle=w,p.fillRect(0,0,f.width,f.height))),p.drawImage(s,d+Math.round(x)*c,u+Math.round(A)*c,n*c,t*c)}function re(x,A){let P=f.getBoundingClientRect(),U=window.devicePixelRatio||1,ae=(x-P.left)*U,z=(A-P.top)*U;return{x:(ae-d)/c,y:(z-u)/c}}return y(),typeof ResizeObserver=="function"?new ResizeObserver(y).observe(e):window.addEventListener("resize",y),{canvas:s,ctx:h,width:n,height:t,present:T,toGame:re}}var Pt=new Set(["w","a","s","d","arrowup","arrowleft","arrowdown","arrowright"]);function Ye(e,l,n={}){let t={x:0,y:0},o=[],r=!1,a=[],k=n.cursor??null,i=new Set,s=typeof window>"u"?null:window;function h(){return k!==null&&(k.active?k.active():!0)}function f(g){let y=String(g.key).toLowerCase();Pt.has(y)&&h()&&(i.add(y),g.preventDefault?.())}function p(g){i.delete(String(g.key).toLowerCase())}function c(){i.clear()}function d(g,y){let T=k.bounds;return{x:Math.max(T.x0,Math.min(T.x1,g)),y:Math.max(T.y0,Math.min(T.y1,y))}}function u(g){let y=l.toGame(g.clientX,g.clientY);t.x=y.x,t.y=y.y,r&&a.push({x:y.x,y:y.y})}function w(){r=!1}function v(g){if(g.button!==0)return;g.preventDefault();let y=l.toGame(g.clientX,g.clientY);t.x=y.x,t.y=y.y,o.push({x:y.x,y:y.y}),r=!0,a.push({x:y.x,y:y.y})}return e.addEventListener("pointermove",u,{passive:!0}),e.addEventListener("pointerdown",v),e.addEventListener("pointerup",w),e.addEventListener("pointercancel",w),e.addEventListener("contextmenu",g=>g.preventDefault()),k&&(s?.addEventListener("keydown",f),s?.addEventListener("keyup",p),s?.addEventListener("blur",c)),e.style.touchAction="none",{aim:t,get down(){return r},takeGrabs(){let g=o;return o=[],g},takeStroke(){let g=a;return a=[],g},stepCursor(g){if(!h()||i.size===0)return[];let y=0,T=0;if((i.has("a")||i.has("arrowleft"))&&(y-=1),(i.has("d")||i.has("arrowright"))&&(y+=1),(i.has("w")||i.has("arrowup"))&&(T-=1),(i.has("s")||i.has("arrowdown"))&&(T+=1),y===0&&T===0)return[];let re=Math.hypot(y,T),x=k.speed*(Number.isFinite(g)&&g>0?g:0),A=d(t.x,t.y),P=d(A.x+y/re*x,A.y+T/re*x);return t.x=P.x,t.y=P.y,[A,P]},dispose(){e.removeEventListener("pointermove",u),e.removeEventListener("pointerdown",v),e.removeEventListener("pointerup",w),e.removeEventListener("pointercancel",w),s?.removeEventListener("keydown",f),s?.removeEventListener("keyup",p),s?.removeEventListener("blur",c),i.clear()}}}function S(e,l){let n=e.length,t=n>0?e[0].length:0;for(let a of e)if(a.length!==t)throw new Error(`sprite rows must be equal length (expected ${t}, got ${a.length})`);let o=document.createElement("canvas");o.width=Math.max(1,t),o.height=Math.max(1,n);let r=o.getContext("2d");r.imageSmoothingEnabled=!1;for(let a=0;a<n;a+=1)for(let k=0;k<t;k+=1){let i=e[a][k];if(i==="."||i===" ")continue;let s=l[i];s&&(r.fillStyle=s,r.fillRect(k,a,1,1))}return{width:t,height:n,image:o}}var W=16,Ue=new WeakMap;function Gt(e){let l=Math.ceil(Math.sqrt(e.width**2+e.height**2))+1,n=l+l%2,t=[];for(let o=0;o<W;o+=1){let r=document.createElement("canvas");r.width=n,r.height=n;let a=r.getContext("2d");a.imageSmoothingEnabled=!1,a.translate(n/2,n/2),a.rotate(o/W*Math.PI*2),a.drawImage(e.image,-e.width/2,-e.height/2),t.push(r)}return t}function We(e,l,n,t,o,r=!1){if(Math.abs(o)<1e-4){C(e,l,n,t,r);return}let a=Ue.get(l);a||(a=Gt(l),Ue.set(l,a));let k=Math.PI*2/W,i=(Math.round(o/k)%W+W)%W;if(i===0){C(e,l,n,t,r);return}let s=a[i],h=Math.round(n+l.width/2),f=Math.round(t+l.height/2),p=s.width/2;if(!r){e.drawImage(s,Math.round(h-p),Math.round(f-p));return}e.save(),e.translate(h,f),e.scale(-1,1),e.drawImage(s,-p,-p),e.restore()}function C(e,l,n,t,o=!1){let r=Math.floor(n),a=Math.floor(t);if(!o){e.drawImage(l.image,r,a);return}e.save(),e.translate(r+l.width,a),e.scale(-1,1),e.drawImage(l.image,0,0),e.restore()}var Ht={A:[".###.","#...#","#...#","#####","#...#","#...#","#...#"],B:["####.","#...#","#...#","####.","#...#","#...#","####."],C:[".###.","#...#","#....","#....","#....","#...#",".###."],D:["####.","#...#","#...#","#...#","#...#","#...#","####."],E:["#####","#....","#....","####.","#....","#....","#####"],F:["#####","#....","#....","####.","#....","#....","#...."],G:[".###.","#...#","#....","#.###","#...#","#...#",".####"],H:["#...#","#...#","#...#","#####","#...#","#...#","#...#"],I:["#####","..#..","..#..","..#..","..#..","..#..","#####"],J:["..###","...#.","...#.","...#.","...#.","#..#.",".##.."],K:["#...#","#..#.","#.#..","##...","#.#..","#..#.","#...#"],L:["#....","#....","#....","#....","#....","#....","#####"],M:["#...#","##.##","#.#.#","#.#.#","#...#","#...#","#...#"],N:["#...#","##..#","#.#.#","#..##","#...#","#...#","#...#"],O:[".###.","#...#","#...#","#...#","#...#","#...#",".###."],P:["####.","#...#","#...#","####.","#....","#....","#...."],Q:[".###.","#...#","#...#","#...#","#.#.#","#..#.",".##.#"],R:["####.","#...#","#...#","####.","#.#..","#..#.","#...#"],S:[".####","#....","#....",".###.","....#","....#","####."],T:["#####","..#..","..#..","..#..","..#..","..#..","..#.."],U:["#...#","#...#","#...#","#...#","#...#","#...#",".###."],V:["#...#","#...#","#...#","#...#","#...#",".#.#.","..#.."],W:["#...#","#...#","#...#","#.#.#","#.#.#","##.##","#...#"],X:["#...#","#...#",".#.#.","..#..",".#.#.","#...#","#...#"],Y:["#...#","#...#",".#.#.","..#..","..#..","..#..","..#.."],Z:["#####","....#","...#.","..#..",".#...","#....","#####"],0:[".###.","#...#","#..##","#.#.#","##..#","#...#",".###."],1:["..#..",".##..","..#..","..#..","..#..","..#..",".###."],2:[".###.","#...#","....#","..##.",".#...","#....","#####"],3:["####.","....#","....#",".###.","....#","....#","####."],4:["...#.","..##.",".#.#.","#..#.","#####","...#.","...#."],5:["#####","#....","####.","....#","....#","#...#",".###."],6:["..##.",".#...","#....","####.","#...#","#...#",".###."],7:["#####","....#","...#.","..#..",".#...",".#...",".#..."],8:[".###.","#...#","#...#",".###.","#...#","#...#",".###."],9:[".###.","#...#","#...#",".####","....#","...#.",".##.."],$:["..#..",".####","#.#..",".###.","..#.#","####.","..#.."],".":[".....",".....",".....",".....",".....",".##..",".##.."],",":[".....",".....",".....",".....",".##..","..#..",".#..."],":":[".....",".##..",".##..",".....",".##..",".##..","....."],"\xB7":[".....",".....",".....","..#..",".....",".....","....."],"-":[".....",".....",".....","#####",".....",".....","....."],"+":[".....","..#..","..#..","#####","..#..","..#..","....."],"!":["..#..","..#..","..#..","..#..","..#..",".....","..#.."],"'":["..#..","..#..",".....",".....",".....",".....","....."],"/":["....#","...#.","...#.","..#..",".#...",".#...","#...."],"?":[".###.","#...#","....#","..##.","..#..",".....","..#.."],"%":["##..#","##.#.","...#.","..#..",".#...",".#.##","#..##"]},Ee=new Map(Object.entries(Ht));function N(e,l=1){return e.length===0?0:(e.length*6-1)*l}var O=7,Nt=32,xe=new Map,qe=null;function Ot(){return qe||(typeof document<"u"&&typeof document.createElement=="function"?()=>document.createElement("canvas"):null)}function Ft(e,l){let n=Ot();if(!n)return null;let t=n();if(!t||typeof t.getContext!="function")return null;let o=[...Ee.keys()],r=5*l,a=7*l;t.width=r*o.length,t.height=a;let k=t.getContext("2d");if(!k||typeof k.fillRect!="function")return null;k.fillStyle=e;let i=new Map;for(let s=0;s<o.length;s+=1){let h=o[s],f=s*r;i.set(h,f);let p=Ee.get(h);for(let c=0;c<7;c+=1){let d=p[c];for(let u=0;u<5;u+=1)d[u]==="#"&&k.fillRect(f+u*l,c*l,l,l)}}return{canvas:t,offsets:i,gw:r,gh:a}}function Bt(e,l,n){if(!Number.isInteger(n)||n<1||typeof e.drawImage!="function")return null;let t=`${n}|${l}`,o=xe.get(t);if(o)return o;if(xe.size>=Nt)return null;let r=Ft(l,n);return r&&xe.set(t,r),r}function G(e,l,n,t,o,r=1){e.fillStyle=o;let a=Math.round(n),k=Math.round(t),i=Bt(e,o,r);for(let s of String(l).toUpperCase()){if(s===" "){a+=6*r;continue}if(i){let h=i.offsets.get(s);h!==void 0&&e.drawImage(i.canvas,h,0,i.gw,i.gh,a,k,i.gw,i.gh)}else{let h=Ee.get(s);if(h)for(let f=0;f<7;f+=1){let p=h[f];for(let c=0;c<5;c+=1)p[c]==="#"&&e.fillRect(a+c*r,k+f*r,r,r)}}a+=6*r}return a}function H(e,l,n,t,o,r=1){G(e,l,Math.round(n-N(l,r)/2),t,o,r)}function Ve({update:e,render:l,fps:n=60}){let t=1/n,o=1e3/n,r=performance.now(),a=0,k=0,i=!0;function s(h){if(!i)return;k=requestAnimationFrame(s);let f=Math.min(Math.max(0,h-r),250);for(r=h,a+=f;a>=o;)e(t),a-=o;l(a/o,f/1e3)}return k=requestAnimationFrame(s),{stop(){i=!1,cancelAnimationFrame(k)}}}var Dt=["#ffffff","#c8c8c8","#8a8a8a"];function $e(e={}){let l=e.palettes??{},n=e.dust??["#5d7a52","#8a9c74"],t=[];function o(r){return l[r]??Dt}return{burst(r,a,k,i=1){let s=o(k),h=Math.round(14*i);for(let f=0;f<h;f+=1){let p=f/h*Math.PI*2+Math.random()*.4,c=26+Math.random()*54*i;t.push({x:r,y:a,vx:Math.cos(p)*c,vy:Math.sin(p)*c-22,life:.5+Math.random()*.45,age:0,colour:s[f%s.length],size:Math.random()<.28?2:1})}},splat(r,a,k){let i=o(k);for(let s=0;s<12;s+=1){let h=-Math.PI+s/12*Math.PI,f=30+Math.random()*46;t.push({x:r,y:a,vx:Math.cos(h)*f,vy:Math.sin(h)*f*.62,life:.4+Math.random()*.4,age:0,colour:i[s%i.length],size:1})}for(let s=0;s<7;s+=1)t.push({x:r+(Math.random()-.5)*10,y:a,vx:(Math.random()-.5)*26,vy:-8-Math.random()*18,life:.45+Math.random()*.35,age:0,colour:n[s%n.length],size:1})},update(r){for(let a of t)a.age+=r,a.vy+=190*r,a.x+=a.vx*r,a.y+=a.vy*r,a.vx*=1-2.2*r;t=t.filter(a=>a.age<a.life)},draw(r){for(let a of t){let k=a.age/a.life;r.globalAlpha=k<.66?1:Math.max(0,1-(k-.66)/.34),r.fillStyle=a.colour,r.fillRect(Math.floor(a.x),Math.floor(a.y),a.size,a.size)}r.globalAlpha=1},count(){return t.length},clear(){t=[]}}}var j=null,q=!1;function Te(){if(!j){let e=window.AudioContext||window.webkitAudioContext;if(!e)return null;j=new e}return j.state==="suspended"&&j.resume(),j}function V({freq:e,endFreq:l,duration:n=.1,type:t="square",gain:o=.05}){if(q)return;let r=Te();if(!r)return;let a=r.createOscillator(),k=r.createGain(),i=r.currentTime;a.type=t,a.frequency.setValueAtTime(e,i),l&&a.frequency.exponentialRampToValueAtTime(Math.max(1,l),i+n),k.gain.setValueAtTime(o,i),k.gain.exponentialRampToValueAtTime(1e-4,i+n),a.connect(k).connect(r.destination),a.start(i),a.stop(i+n+.02)}function ke(e=.08,l=.08){if(q)return;let n=Te();if(!n)return;let t=Math.floor(n.sampleRate*e);if(!Number.isFinite(t)||t<1)return;let o=n.createBuffer(1,t,n.sampleRate),r=o.getChannelData(0);for(let i=0;i<t;i+=1)r[i]=(Math.random()*2-1)*(1-i/t);let a=n.createBufferSource(),k=n.createGain();k.gain.setValueAtTime(l,n.currentTime),a.buffer=o,a.connect(k).connect(n.destination),a.start()}function B(){return q}function ie(){return Te()}function Ke(e){return q=e===void 0?!q:!!e,q}var se=.018;function Xe(){let e=!1,l=null,n=0,t=null,o=null,r=null,a=null,k=null,i=null,s=null;function h(c,d){let u=Math.max(1,Math.floor(c.sampleRate*d)),w=c.createBuffer(1,u,c.sampleRate),v=w.getChannelData(0),g=0;for(let y=0;y<u;y+=1){let T=Math.random()*2-1;g=(g+.02*T)/1.02,v[y]=g*3.5}return w}function f(c,d){let u=c.createOscillator(),w=c.createGain();u.type="sawtooth",u.frequency.setValueAtTime(1250+Math.random()*260,d),u.frequency.exponentialRampToValueAtTime(760,d+.13),u.frequency.exponentialRampToValueAtTime(980,d+.2),w.gain.setValueAtTime(1e-4,d),w.gain.exponentialRampToValueAtTime(se*.5,d+.03),w.gain.exponentialRampToValueAtTime(1e-4,d+.26),u.connect(w).connect(c.destination),u.start(d),u.stop(d+.3)}function p(){let c=ie();if(!c)return;let d=B()?0:1;r&&r.gain.setTargetAtTime(se*d,c.currentTime,.2),k&&k.gain.setTargetAtTime(se*.55*d,c.currentTime,.2),!B()&&c.currentTime>=n&&(f(c,c.currentTime+.05),n=c.currentTime+9+Math.random()*12)}return{start(){if(e)return;let c=ie();if(!c)return;e=!0;let d=h(c,3);t=c.createBufferSource(),t.buffer=d,t.loop=!0,o=c.createBiquadFilter(),o.type="lowpass",o.frequency.setValueAtTime(700,c.currentTime),r=c.createGain(),r.gain.setValueAtTime(0,c.currentTime),t.connect(o).connect(r).connect(c.destination),t.start(),a=c.createBufferSource(),a.buffer=d,a.loop=!0,a.playbackRate.setValueAtTime(.35,c.currentTime);let u=c.createBiquadFilter();u.type="bandpass",u.frequency.setValueAtTime(220,c.currentTime),u.Q.setValueAtTime(.7,c.currentTime),k=c.createGain(),k.gain.setValueAtTime(0,c.currentTime),a.connect(u).connect(k).connect(c.destination),a.start(),i=c.createOscillator(),i.type="sine",i.frequency.setValueAtTime(55,c.currentTime),s=c.createGain(),s.gain.setValueAtTime(0,c.currentTime),i.connect(s).connect(c.destination),i.start(),n=c.currentTime+4,l=setInterval(p,250),p()},stop(){l!==null&&(clearInterval(l),l=null)},setClarity(c){let d=ie();if(!d||!e)return;let u=Math.max(0,Math.min(1,c/100));if(o&&o.frequency.setTargetAtTime(300+u*400,d.currentTime,.6),s){let w=Math.max(0,1-u/.5);s.gain.setTargetAtTime(B()?0:se*.5*w,d.currentTime,.6)}}}}function Je(e={}){let l=e.size??96,n=e.colour??"rgba(120, 150, 210, 0.085)",t=e.scale??3,o=document.createElement("canvas");o.width=l,o.height=l;let r=o.getContext("2d");return r.imageSmoothingEnabled=!1,G(r,"45",8,10,n,t),G(r,"47",l-40,l-38,n,t),o}function ze(e,l=0){try{let n=window.localStorage.getItem(e);if(n===null)return l;let t=Number(n);return Number.isFinite(t)?t:l}catch{return l}}function je(e,l){try{return window.localStorage.setItem(e,String(l)),!0}catch{return!1}}function Qe(e){let l=`wh-games.${e}.best`,n=ze(l,0);return{key:l,value(){return n},submit(t){return!Number.isFinite(t)||t<=n?!1:(n=t,je(l,n),!0)}}}function Ze(e={}){let l=e.music??null,n=document.getElementById(e.buttonId??"sound");new URLSearchParams(window.location.search).get("embed")==="1"&&document.body.classList.add("embed");let t=!1;function o(){t||!l||(t=!0,l.start())}function r(){if(!n)return;let k=B();n.setAttribute("aria-pressed",String(!k));let i=n.querySelector(".toggle-text");i&&(i.textContent=k?"Sound off":"Sound on")}function a(){let k=Ke();return r(),k||o(),k}return n&&n.addEventListener("click",()=>{o(),a()}),r(),{startMusicOnce:o,toggle:a,isMuted:B}}function et(e,l,n,t,o={}){let r=o.top??78,a=o.height??54;e.fillStyle=o.background??"rgba(8, 12, 20, 0.82)",e.fillRect(0,r,l,a),H(e,n,l/2,r+8,o.titleColour??"#ffe680",2),H(e,t,l/2,r+30,o.subtitleColour??"#e8edf5")}var Yt=10,tt=12,Ut=12,$=5,ce=10;function Se({lines:e=[],prompt:l,best:n,titleScale:t=2}){let o=tt+O*t;return e.length>0&&(o+=ce+e.length*(O+$)-$),l&&(o+=ce+O),n&&(o+=$+O),o+Ut}function lt(e,l,n,t){let{title:o,lines:r=[],prompt:a,best:k,titleScale:i=2,fade:s=1,top:h}=t;e.fillStyle=`rgba(8, 12, 20, ${(.72*s).toFixed(3)})`,e.fillRect(0,0,l,n);let f=Math.max(N(o,i),...r.map(v=>N(v)),a?N(a):0,k?N(k):0),p=Math.min(l-8,f+Yt*2+8),c=Se({lines:r,prompt:a,best:k,titleScale:i}),d=Math.round((l-p)/2),u=Math.round(h??(n-c)/2);e.globalAlpha=s,e.fillStyle="#0b1020",e.fillRect(d,u,p,c),e.fillStyle="#18233f",e.fillRect(d+1,u+1,p-2,c-2),e.fillStyle="#0d1326",e.fillRect(d+3,u+3,p-6,c-6),e.fillStyle="#2c3a5e",e.fillRect(d+1,u+1,p-2,1),e.fillRect(d+1,u+1,1,c-2);let w=u+tt;for(let[v,g]of[[-1,0],[1,0],[0,-1],[0,1]])H(e,o,l/2+v,w+g,"#0b1020",i);if(H(e,o,l/2,w,"#ffe680",i),w+=O*i,r.length>0){w+=ce;for(let v of r)H(e,v,l/2,w,"#9fb4c8"),w+=O+$;w-=$}a&&(w+=ce,H(e,a,l/2,w,"#ffe680"),w+=O),k&&(w+=$,H(e,k,l/2,w,"#c9a227")),e.globalAlpha=1}function R(e){let l=e.reduce((n,t)=>Math.max(n,t.length),0);return e.map(n=>n.padEnd(l,"."))}var Ae={k:"#241a12",b:"#6b4a2a",d:"#4a3219",t:"#8f6837",w:"#f7f4ec",s:"#d5cfc0",y:"#f2b705",e:"#101010",p:"#faf4e4",i:"#4a5260",r:"#a83232"},Wt=R([".........kkkk","........ktttk",".......kttttk","......kttttdk",".....ktttttdk..kkkk","....kttttttdk.kwwwwk","....kttttttdk.kwewwkyy",".....kkttttdkkwwwwwkyy",".kkkkbbbbbbbbbwwwwwkk","kwwwsbbbbbbbbbbbwwkk","kwwwsbbbbbbbbbbbkk",".kwwsbbbbbbbbbbkk","..kkkbbbbbbbbkk","......kyykkyyk",".......yy..yy","......kkkkkkkkk","......kpppppppk","......kpiiiiipk","......kpppppppk","......kpiiiirrk","......kpppppppk","......kpiiiprrk","......kpppppppk","......kkkkkkkkk"]),qt=R(["","","","","...............kkkk","..............kwwwwk",".....kkkkkkkk.kwewwkyy","....kttttttdkkwwwwwkyy",".kkkkttttdddkbwwwwwkk","kwwwskkddddkkbbbwwkk","kwwwsbbbbbbbbbbbkk",".kwwsbbbbbbbbbbkk","..kkkbbbbbbbbkk","......kyykkyyk",".......yy..yy","......kkkkkkkkk","......kpppppppk","......kpiiiiipk","......kpppppppk","......kpiiiirrk","......kpppppppk","......kpiiiprrk","......kpppppppk","......kkkkkkkkk"]),Vt=R(["","","","","...............kkkk","..............kwwwwk","..............kwewwkyy","........kkkkkkwwwwwkyy",".kkkkbbbbbbbbbwwwwwkk","kwwwsbbbbbbbbbbbwwkk","kwwwsbbbbbbbbbbbkk",".kwwskkkkkbbbbbkk","..kkkttttkkbbkk","....kttttdkyyk",".....kkddk.yy","......kkkkkkkkk","......kpppppppk","......kpiiiiipk","......kpppppppk","......kpiiiirrk","......kpppppppk","......kpiiiprrk","......kpppppppk","......kkkkkkkkk"]),D={k:"#4e5666",l:"#eef1f7",s:"#cdd4e0",d:"#9aa4b6",w:"#75809a",g:"#c8a24a"},ot=D.l,rt=D.s,$t=R(["...ll...","..llss..","..llss..",".lllsss.",".lllsss.","llllssss"]),Kt=R(["..........ll..........",".........kllk.........","........kllllk........",".......kllllllk.......","......klllllllsk......","......klllllllsk......",".....kslllllllssk.....",".....kslllllllssk.....","....kkslllllllsskk....","...kslllwlllwllllsk...","..ksllllllllllllllsk..",".kslllllllllllllllssk.","kslwlwlwlwlwlwlwlwlssk","kslllllllllllllllllsdk","kslwlwlwlwlwlwlwlwlsdk","kslllllllllllllllllsdk","kkkkkkkkkkkkkkkkkkkkkk"]),Xt={k:"#8a7f74",l:"#ffffff",s:"#f2ece2",d:"#d8cfc2",w:"#a8967f",g:"#c8a24a"},Jt=R([".....................g",".....................g","....................kllk","...................kllllk","..................kllllllk",".................kllllllllk","................kllllllllllk","................kkkkkkkkkkkk",".............kllkllllllllllkllk",".............kllklwwlwwlwwlkllk",".............kllklwwlwwlwwlkllk",".............kllklwwlwwlwwlkllk","kkkkkkkkkkkkkkllklwwlwwlwwlkllkkkkkkkkkkkkkk","klllllllllllkkllklwwlwwlwwlkllkklllllllllllk","klwlwlwlwlwlkkllklwwlwwlwwlkllkklwlwlwlwlwlk","klllllllllllkkllklwwlwwlwwlkllkklllllllllllk","klwlwlwlwlwlkkllklwwlwwlwwlkllkklwlwlwlwlwlk","kdddddddddddkkddddddddddddddddkkdddddddddddk","kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"]),zt=R(["...........ll","..........kllk",".........kkllkk","........klllllllk",".......klllllllsk","......ksllllllllsk","......ksllllllllsk",".....kkslllllllsskk","....kkkkkkkkkkkkkkkkk","...kslslslslslslslslsk","...kslslslslslslslslsk","...kslslslslslslslslsk","..kkkkkkkkkkkkkkkkkkkkk",".kdddddddddddddddddddddk","kkkkkkkkkkkkkkkkkkkkkkkkk"]),jt=R(["kkkkkkkkkkkkkkkkkkkk","kllllllllllllllllllk","kddddddddddddddddddk","klwlwlwlwlwlwlwlwllk","klwlwlwlwlwlwlwlwllk","klwlwlwlwlwlwlwlwllk","klwlwlwlwlwlwlwlwllk","kllllllllllllllllllk","kddddddddddddddddddk","kkkkkkkkkkkkkkkkkkkk"]),Qt={k:"#3b201a",r:"#9c5241",m:"#6d3629",l:"#c47a5f",w:"#2a1a1e",g:"#c8a24a"},Zt=R(["....g..........g","...kkk........kkk","...krk........krk","..kkrkk......kkrkk","..krrrk......krrrk","..klrmk......klrmk","..krwrk......krwrk","..klrmk.kkk..klrmk","..krrrkkkrkkkkrrrk","..klrmkkrrrkkklrmk","kkkkrwrkklrmkkrwrkkk","krrklrmkkrwrkklrmkrk","krwkrrrkklrmkkrrrkwk","krrklwrkkrwrkklwrkrk","kmmkmmmkkmmmkkmmmkmk","kkkkkkkkkkkkkkkkkkkk"]),el=R(["kkkkkkkkkkkk","kllllllllllk","klwlwlwlwlwk","kllllllllllk","klwlwlwlwlwk","kllllllllllk","klwlwlwlwlwk","kddddddddddk","kkkkkkkkkkkk"]),I={outline:"#2b2f3a",light:"#fffdf6",face:"#ece5d4",shade:"#c3b79c",flute:"#d3c8ae",gold:"#d8a930"},tl={k:I.outline,l:I.light,s:I.face,d:I.shade,g:I.gold},ll=R(["..kkkkkkkkkkkkkkkkkk..","..klllllllllllllllsk..","..kssssssssssssssssk..",".kllllllllllllllllllk.",".kgggggggggggggggggdk.","klllllllllllllllllllsk","kssssssssssssssssssssk","kkkkkkkkkkkkkkkkkkkkkk"]),nt={k:"#123320",g:"#1d5c31",l:"#2c8440",t:"#4a3a24",p:"#f0a8bd",q:"#d97f9c"},nl=R(["..kkkk..",".kgllgk.","kglllllk","kgllllgk",".kgllgk.","...tt...","...tt..."]),ol=R(["..kppk..",".kpqqpk.","kppqqppk",".kpqqpk.","...tk...","...tt..."]),at={feather:["#f7f4ec","#d5cfc0","#8f6837","#6b4a2a"],bill:["#faf4e4","#e2d8bf","#a83232","#4a5260"]},M={};function kt(){M.eagleUp=S(Wt,Ae),M.eagleMid=S(qt,Ae),M.eagleDown=S(Vt,Ae),M.monumentCap=S($t,D),M.capitol=S(Kt,D),M.whiteHouse=S(Jt,Xt),M.jefferson=S(zt,D),M.lincoln=S(jt,D),M.castle=S(Zt,Qt),M.fedBlock=S(el,D),M.columnCap=S(ll,tl),M.elm=S(nl,nt),M.cherry=S(ol,nt)}var rl="#12417c",al="#4f8ec9",kl="#c6dfef",fe=208,ue=40;function st(e,l,n){let t=e.createLinearGradient(0,0,0,n);t.addColorStop(0,rl),t.addColorStop(.55,al),t.addColorStop(1,kl),e.fillStyle=t,e.fillRect(0,0,l,n);let o=e.createRadialGradient(fe,ue,0,fe,ue,52);o.addColorStop(0,"rgba(255, 244, 214, 0.5)"),o.addColorStop(1,"rgba(255, 244, 214, 0)"),e.fillStyle=o,e.fillRect(fe-52,ue-52,104,104),e.fillStyle="#fff6d8",e.beginPath(),e.arc(fe,ue,6,0,Math.PI*2),e.fill()}var F=["..####....",".########.","##########",".########."],il=[{x:.05,y:20,scale:2,speed:3.1,alpha:.9},{x:.32,y:46,scale:1,speed:4.4,alpha:.75},{x:.55,y:14,scale:3,speed:2.2,alpha:.8},{x:.78,y:58,scale:2,speed:3.6,alpha:.65},{x:.9,y:34,scale:1,speed:5,alpha:.6}];function ct(e,l,n){for(let t of il){let o=l+F[0].length*t.scale,r=(t.x*o+n*t.speed)%o,a=Math.round(l-r);e.globalAlpha=t.alpha,e.fillStyle="#ffffff";for(let k=0;k<F.length;k+=1)for(let i=0;i<F[k].length;i+=1)F[k][i]==="#"&&e.fillRect(a+i*t.scale,t.y+k*t.scale,t.scale,t.scale);e.globalAlpha=t.alpha*.45,e.fillStyle="#bcd2e6";for(let k=0;k<F[0].length;k+=1)F[F.length-1][k]==="#"&&e.fillRect(a+k*t.scale,t.y+F.length*t.scale,t.scale,t.scale)}e.globalAlpha=1}function _e(e,l,n,t=0){let o=document.createElement("canvas");o.width=e,o.height=l;let r=o.getContext("2d");return r.imageSmoothingEnabled=!1,n(r),t>0&&(r.globalCompositeOperation="source-atop",r.fillStyle=`rgba(198, 223, 239, ${t})`,r.fillRect(0,0,e,l),r.globalCompositeOperation="source-over"),o}function pe(e,l,n,t,o){let r=l.width,a=-((t%r+r)%r);for(let k=a;k<n;k+=r)e.drawImage(l,Math.round(k),o)}var sl=288,Q=40;function ft(e){return _e(sl,Q,l=>{let n=e.fedBlock,t=[0,5,2,8,1,6,3,7,0,4,9,2];for(let o=0;o<t.length;o+=1){let r=o*24;C(l,n,r,Q-n.height-t[o]),C(l,n,r+12,Q-n.height-(t[o]+3)%6)}},.5)}var K=512,de=108,Re=92,ve=8,cl=[{x:240,height:30,phase:0},{x:356,height:26,phase:1.7}];function ut(e){return _e(K,de,l=>{let n=de,t=(a,k)=>C(l,a,k,n-a.height);t(e.lincoln,14),t(e.fedBlock,48),t(e.jefferson,74);let o=e.monumentCap,r=n-Re;C(l,o,132,r),l.fillStyle=ot,l.fillRect(132,r+o.height,ve/2,Re-o.height),l.fillStyle=rt,l.fillRect(132+ve/2,r+o.height,ve/2,Re-o.height),t(e.fedBlock,158),t(e.castle,186),t(e.fedBlock,222),t(e.whiteHouse,248),t(e.fedBlock,310),t(e.fedBlock,334),t(e.capitol,366),t(e.fedBlock,404),t(e.jefferson,430),t(e.fedBlock,470),l.fillStyle="rgba(30, 48, 70, 0.22)",l.fillRect(0,n-2,K,2)},.22)}var Le=288,Z=12;function dt(e){return _e(Le,Z,l=>{for(let n=0;n*18<Le;n+=1){let t=n*18,o=n%4===1?e.cherry:e.elm;C(l,o,t,Z-o.height)}l.fillStyle="#153d24",l.fillRect(0,Z-3,Le,3)})}var fl="#b22234",ul="#ffffff",dl="#3c3b6e";function pt(e,l,n=7){let t=document.createElement("canvas");t.width=e,t.height=l;let o=t.getContext("2d");o.imageSmoothingEnabled=!1;for(let r=0;r<n;r+=1){let a=Math.round(r*l/n),k=Math.round((r+1)*l/n);o.fillStyle=r%2===0?fl:ul,o.fillRect(0,a,e,Math.max(1,k-a))}return o.fillStyle=dl,o.fillRect(0,0,Math.round(e*.4),Math.round(l*4/n)),t}function pl(e,l,n,t,o,r,a){e.fillStyle="#dfe4ec",e.fillRect(n,t,1,o),e.fillStyle="#e8b93a",e.fillRect(n,t-1,1,1);for(let k=0;k<l.width;k+=1){let i=k/l.width,s=Math.sin(i*5-r*4+a)*i*1.8;e.drawImage(l,k,0,1,l.height,n+1+k,Math.round(t+s),1,l.height)}}function mt(e,l,n,t,o,r){let a=-((t%K+K)%K);for(let k=a;k<n;k+=K)for(let i of cl){let s=Math.round(k+i.x);s<-12||s>n+12||pl(e,l,s,o-i.height,i.height,r,i.phase)}}var ml="#cfc4a8",it="#a89c80",hl="#3c6a33",wl="#4a7d3e",gl="#2c5026";function ht(e,l,n,t,o){e.fillStyle=ml,e.fillRect(0,t,l,6),e.fillStyle=it,e.fillRect(0,t+6,l,1),e.fillStyle=hl,e.fillRect(0,t+7,l,n-t-7),e.fillStyle=wl;let r=26,a=-((o%r+r)%r);for(let s=a;s<l;s+=r)e.fillRect(Math.round(s),t+7,13,n-t-7);e.fillStyle=it;let k=7,i=-((o%k+k)%k);for(let s=i;s<l;s+=k)e.fillRect(Math.round(s),t+2,1,1),e.fillRect(Math.round(s)+3,t+4,1,1);e.fillStyle=gl,e.fillRect(0,n-3,l,3)}function wt(e){let l=e>>>0;return function(){l+=1831565813;let t=l;return t=Math.imul(t^t>>>15,t|1),t^=t+Math.imul(t^t>>>7,t|61),((t^t>>>14)>>>0)/4294967296}}var E=194,Y=66,ee=22;var gt=5,yl=6,bl=8,me=20,Ml=640,xl=-196,El=268,he=22,Tl=112,Sl=72,Al=56,Rl=60,vl=94,Mt=20,Ll=24,_l=30,Cl=44,Il=60,Pl=82,Gl=-70;function xt(e,l,n){let t=Math.min(1,Math.max(0,n));return e+(l-e)*t}function Ce(e){return xt(Rl,vl,e/Mt)}function Hl(e){return Math.round(xt(Sl,Al,e/Mt))}function Nl(e){return{x:Y+gt,y:e.y+yl,w:ee-gt*2,h:bl}}function Ie(e){let l=e.gapY+e.gap;return{top:{x:e.x,y:0,w:he,h:e.gapY},bottom:{x:e.x,y:l,w:he,h:E-l}}}function yt(e,l){return e.x<l.x+l.w&&e.x+e.w>l.x&&e.y<l.y+l.h&&e.y+e.h>l.y}function Ol(e,l){let n=Ll,t=E-l-_l,o=n+l/2,r=t+l/2,a=e.columns[e.columns.length-1],k=a?a.gapY+a.gap/2:(o+r)/2,i=(e.rng()*2-1)*Cl,s=Math.min(r,Math.max(o,k+i));return Math.round(s-l/2)}function bt(e,l){let n=Hl(e.score);e.columns.push({x:l,gap:n,gapY:Ol(e,n),passed:!1})}function Pe(e={}){return{phase:"ready",rng:wt(e.seed??1),elapsed:0,t:0,y:Pl,vy:0,columns:[],score:0,events:[]}}function Et(e){return e.phase==="falling"||e.phase==="dead"?!1:(e.phase==="ready"&&(e.phase="playing",e.t=0),e.vy=xl,e.events.push({type:"flap"}),!0)}function Fl(e,l){e.phase="falling",e.t=0,e.vy=Gl,e.events.push({type:"crash",x:Y+ee/2,y:l})}function Tt(e,l,n){if(e.t+=l,e.phase==="dead"||e.phase==="ready")return;if(e.elapsed+=l,e.vy=Math.min(El,e.vy+Ml*l),e.y+=e.vy*l,e.y<0&&(e.y=0,e.vy=0),e.phase==="falling"){e.y+me>=E&&(e.y=E-me,e.vy=0,e.phase="dead",e.t=0,e.events.push({type:"land",x:Y+ee/2,y:E}));return}let t=Ce(e.score);for(let a of e.columns)a.x-=t*l;for(e.columns.length>0&&e.columns[0].x+he<0&&e.columns.shift(),e.columns.length===0&&bt(e,n.width+Il);e.columns[e.columns.length-1].x<n.width;)bt(e,e.columns[e.columns.length-1].x+Tl);if(e.y+me>=E){e.y=E-me,e.vy=0,e.phase="dead",e.t=0;let a=Y+ee/2;e.events.push({type:"crash",x:a,y:E}),e.events.push({type:"land",x:a,y:E});return}let o=Nl(e);for(let a of e.columns){let{top:k,bottom:i}=Ie(a);if(yt(o,k)||yt(o,i)){Fl(e,o.y+o.h/2);return}}let r=Y+ee/2;for(let a of e.columns)a.passed||a.x+he>r||(a.passed=!0,e.score+=1,e.events.push({type:"score",score:e.score}))}var L=256,ye=224,He=window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches??!1,Ge={far:.16,near:.42,trees:.78},Bl=.7,Rt=.26,Dl={top:116,height:50},vt={title:"FLAPPY BILL",lines:["KEEP THE BILL IN THE AIR","WHILE FLYING THROUGH MONUMENTS"],prompt:"CLICK OR PRESS SPACE TO FLY"},Yl=Math.round((E-Se(vt))/2),Lt=document.getElementById("game"),Fe=De(Lt,{width:L,height:ye,background:"#080a10",backdropTile:Je()}),Ul=Ye(Lt,Fe),b=Fe.ctx;kt();function Wl(e){let l=document.createElement("canvas");l.width=e.width,l.height=e.height;let n=l.getContext("2d");return n.imageSmoothingEnabled=!1,n.translate(0,e.height),n.scale(1,-1),n.drawImage(e.image,0,0),{width:e.width,height:e.height,image:l}}var ge=M.columnCap,St=Wl(ge),ql=ft(M),Vl=ut(M),$l=dt(M),Kl=pt(11,7),X=$e({palettes:at,dust:["#4a7d3e","#cfc4a8"]}),Xl=Xe(),_t=Ze({music:Xl}),J=Qe("flappy-bill"),oe=document.createElement("div");oe.setAttribute("role","status");oe.setAttribute("aria-live","polite");oe.style.cssText="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap";document.body.appendChild(oe);var m=Pe({seed:Date.now()/1e3|0}),Jl={width:L,height:ye},be=0,te=0,le=0,_=0,ne=0,Be=!1,Ne=-1,Oe="";function we(e){oe.textContent=e}function zl(){ke(.05,.028),V({freq:280,endFreq:170,duration:.07,type:"sine",gain:.022})}function jl(){V({freq:880,duration:.07,type:"triangle",gain:.04}),setTimeout(()=>V({freq:1320,duration:.1,type:"triangle",gain:.035}),55)}function Ql(){ke(.14,.06),V({freq:220,endFreq:90,duration:.18,type:"sawtooth",gain:.04})}function Zl(){V({freq:120,endFreq:60,duration:.16,type:"sine",gain:.05}),ke(.07,.035)}function Ct(){m=Pe({seed:Date.now()/1e3|0}),X.clear(),ne=0,_=0,Be=!1,Ne=-1,Oe=""}function It(){if(_t.startMusicOnce(),m.phase==="dead"){m.t>=Bl&&Ct();return}Et(m)}document.addEventListener("keydown",e=>{if(e.key==="m"||e.key==="M"){_t.toggle();return}if(e.key==="r"||e.key==="R"){Ct();return}if(e.key===" "||e.key==="ArrowUp"||e.key==="w"||e.key==="W"){if(e.preventDefault(),e.repeat)return;It()}});function en(e){be+=e;let l=Ul.takeGrabs();for(let t=0;t<l.length;t+=1)It();Tt(m,e,Jl);for(let t of m.events)switch(t.type){case"flap":le=Rt,zl();break;case"score":jl(),ne=1,J.submit(t.score)&&(Be=!0);break;case"crash":Ql(),X.burst(t.x,t.y,"feather",1.6),X.burst(t.x,t.y+6,"bill",.9),He||(_=Math.max(_,3.4));break;case"land":Zl(),X.splat(t.x,t.y,"feather"),He||(_=Math.max(_,2));break;default:break}m.events.length=0,(m.phase==="ready"||m.phase==="playing")&&(te+=Ce(m.score)*e),X.update(e),le=Math.max(0,le-e),ne=Math.max(0,ne-e*3.5),_*=Math.max(0,1-9*e),_<.05&&(_=0),tn()}function tn(){if(m.phase!==Oe&&(Oe=m.phase,m.phase==="ready"&&we("Ready. Press space to fly."),m.phase==="playing"&&we("Flying."),m.phase==="dead")){let e=J.value()>0?`, best ${J.value()}`:"";we(`Grounded. ${m.score} columns cleared${e}. Press space to fly again.`);return}m.phase==="playing"&&m.score!==Ne&&(Ne=m.score,m.score>0&&we(`${m.score}`))}function At(e,l,n){if(n<=0)return;let t=Math.round(l),o=Math.round(n);b.fillStyle=I.outline,b.fillRect(e+2,t,18,o),b.fillStyle=I.light,b.fillRect(e+3,t,5,o),b.fillStyle=I.face,b.fillRect(e+8,t,6,o),b.fillStyle=I.shade,b.fillRect(e+14,t,5,o),b.fillStyle=I.flute;for(let r of[5,9,13,17])b.fillRect(e+r,t,1,o)}function ln(e){let l=Math.round(e.x),{top:n,bottom:t}=Ie(e),o=n.h-St.height;At(l,0,o),C(b,St,l,o),C(b,ge,l,t.y),At(l,t.y+ge.height,E-t.y-ge.height)}function nn(){if(le>0){let e=1-le/Rt;return e<.35?M.eagleDown:e<.7?M.eagleMid:M.eagleUp}return m.vy>150?M.eagleUp:M.eagleMid}function on(){return m.phase==="ready"?0:Math.min(1.3,Math.max(-.45,m.vy/380))}function rn(){let e=m.phase==="ready"&&!He?Math.sin(be*3)*2.5:0;We(b,nn(),Y,m.y+e,on())}function an(){if(m.phase==="ready")return;let e=3,l=String(m.score),n=Math.round((L-N(l,e))/2),t=14-Math.round(ne*3);G(b,l,n+1,t+1,"rgba(10, 20, 34, 0.55)",e),G(b,l,n,t,"#ffffff",e)}function kn(){J.value()>0&&(G(b,`BEST ${J.value()}`,5,6,"rgba(10, 20, 34, 0.5)"),G(b,`BEST ${J.value()}`,4,5,"#ffe680"))}function sn(){st(b,L,E),ct(b,L,be),pe(b,ql,L,te*Ge.far,E-Q);let e=E-de,l=te*Ge.near;pe(b,Vl,L,l,e),mt(b,Kl,L,l,E,be),pe(b,$l,L,te*Ge.trees,E-Z+1);for(let o of m.columns)ln(o);if(ht(b,L,ye,E,te),rn(),X.draw(b),an(),kn(),m.phase==="ready")lt(b,L,ye,{...vt,top:Yl});else if(m.phase==="dead"){let o=Be?`NEW BEST ${m.score} - CLICK TO FLY AGAIN`:`${m.score} CLEARED - CLICK TO FLY AGAIN`;et(b,L,"GROUNDED",o,Dl)}let n=_>0?(Math.random()-.5)*2*_:0,t=_>0?(Math.random()-.5)*2*_:0;Fe.present(n,t)}Ve({update:en,render:sn});})();
+
+//# sourceURL=raw-html-custom-scripts-js-after
+</script>
+</body></html>
