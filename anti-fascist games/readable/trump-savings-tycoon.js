@@ -1866,87 +1866,138 @@
       (l.phase = "roundOver"),
       (l.phaseT = 0));
   }
-  function ve(l, e) {
+  // Reflecting pool basin in front of the monument, shared by the click handler and dn().
+  var POOL_LEFT = 83,
+    POOL_RIGHT = 182,
+    POOL_TOP = R + 5,
+    POOL_BOTTOM = R + 19,
+    POOL_WIDTH = POOL_RIGHT - POOL_LEFT + 1,
+    POOL_HEIGHT = POOL_BOTTOM - POOL_TOP + 1;
+  function isPoolClick(e) {
+    return e.x >= POOL_LEFT && e.x <= POOL_RIGHT && e.y >= POOL_TOP && e.y <= POOL_BOTTOM;
+  }
+  // Clickable background specials. Window numbers (period/offset/cross) must match the
+  // draw functions that animate the same sprites: ce(), fe(), we(), de().
+  var SPECIALS = [
+    {
+      kind: "kite",
+      cooldownKey: "lastKiteHit",
+      cooldown: 50,
+      value: 0,
+      popup: "GO FLY A KITE!",
+      banner: "PAUL GARBER SAYS GO FLY A KITE",
+      color: "#4f8ff0",
+      scale: 1,
+      box: { dx: -15, dy: -15, w: 40, h: 40 },
+      period: null,
+      cross: null,
+      pos() {
+        return { x: 206 + Math.sin(A * 0.75) * 7, y: 50 + Math.cos(A * 0.75 * 1.3) * 3 };
+      },
+    },
+    {
+      kind: "ufo",
+      cooldownKey: "lastUfoHit",
+      cooldown: 40,
+      value: -25000,
+      popup: "WRONG ALIENS",
+      banner: "PENALTY!",
+      color: "#e2564a",
+      box: { dx: -15, dy: -15, w: 40, h: 40 },
+      period: 38,
+      offset: 0,
+      cross: 13,
+      // NOTE: position must match the goose flock drawn in fe().
+      pos(p, c) {
+        return { x: -30 + (p / c) * (x + 60), y: 24 + Math.sin(p * 0.5) * 3 };
+      },
+    },
+    {
+      kind: "car",
+      cooldownKey: "lastCarHit",
+      cooldown: 50,
+      value: 38000,
+      popup: "EPSTEIN FILES 38,000 TIMES!",
+      banner: "CARS DON'T FLY",
+      color: "#4f8ff0",
+      box: { dx: -45, dy: -10, w: 90, h: 20 },
+      period: 52,
+      offset: 0,
+      cross: 9,
+      pos(p, c) {
+        return { x: -40 + (p / c) * (x + 80), y: 165 };
+      },
+    },
+    {
+      kind: "airForceOne",
+      cooldownKey: "lastPlaneHit",
+      cooldown: 50,
+      value: 500000,
+      popup: "NOT A GIFT!",
+      banner: "RECOVERED!",
+      color: "#7fe08a",
+      box: { dx: -30, dy: -20, w: 80, h: 50 },
+      period: 46,
+      offset: 6,
+      cross: 15,
+      pos(p, c) {
+        return { x: -40 + (p / c) * (x + 80), y: 30 + Math.sin((p / c) * Math.PI) * -3 };
+      },
+    },
+    {
+      kind: "marineOne",
+      cooldownKey: "lastHeliHit",
+      cooldown: 50,
+      value: 250000,
+      popup: "CLASSIFIED DOCS SECURED!",
+      banner: "DOCUMENTS DON'T PLAY GOLF",
+      color: "#7fe08a",
+      scale: 1,
+      box: { dx: -30, dy: -25, w: 80, h: 60 },
+      period: 63,
+      offset: 31,
+      cross: 11,
+      pos(p, c) {
+        return { x: x + 40 - (p / c) * (x + 80), y: 62 + Math.sin((p / c) * Math.PI) * -3 };
+      },
+    },
+  ];
+  function grantBonus(l, o) {
+    if (o.grabs) l.grabs -= 1;
+    if (o.cooldownKey) l[o.cooldownKey] = A;
+    l.saved = Math.max(0, l.saved + o.value);
+    l.popup = { t: 0, value: o.value, x: o.px, y: o.py, text: o.popup };
+    l.bonusHit = { x: o.hx, y: o.hy, value: o.value, kind: o.kind, text: o.banner, color: o.color, scale: o.scale };
+    return { result: "bonus", type: o.kind, value: o.value };
+  }
+  function resolveClick(l, e) {
     if (l.grabs > 0) {
-      // Reflecting pool in front of the monument: free joke click, no reward, no penalty, no dot used.
-      if (e.x >= 83 && e.x <= 182 && e.y >= R + 5 && e.y <= R + 19) {
+      if (isPoolClick(e)) {
         return (
           (l.popup = { t: 0, value: 0, x: e.x, y: e.y, text: "MAGA - MAKE ALGAE GREAT AGAIN" }),
           { result: "pool", value: 0 }
         );
       }
-      let kiteX = 206 + Math.sin(A * 0.75) * 7;
-      let kiteY = 50 + Math.cos(A * 0.75 * 1.3) * 3;
-      if (!l.lastKiteHit || A - l.lastKiteHit > 50) {
-        if (Me({ x: kiteX - 15, y: kiteY - 15, w: 40, h: 40, phase: "flying" }, e)) {
-          return (
-            (l.grabs -= 1),
-            (l.lastKiteHit = A),
-            (l.popup = { t: 0, value: 0, x: e.x, y: e.y, text: "GO FLY A KITE!" }),
-            (l.bonusHit = { x: e.x, y: e.y, value: 0, kind: "kite", text: "PAUL GARBER SAYS GO FLY A KITE", color: "#4f8ff0", scale: 1 }),
-            { result: "bonus", type: "kite", value: 0 }
-          );
-        }
-      }
-      let uS = A % 38;
-      if (uS <= 13 && (!l.lastUfoHit || A - l.lastUfoHit > 40)) {
-        let ux = -30 + (uS / 13) * (x + 60);
-        let uy = 40 + Math.sin(A * 0.4) * 4;
-        if (Me({ x: ux - 15, y: uy - 15, w: 40, h: 40, phase: "flying" }, e)) {
-          return (
-            (l.grabs -= 1),
-            (l.lastUfoHit = A),
-            (l.saved = Math.max(0, l.saved - 25000)),
-            (l.popup = { t: 0, value: -25000, x: e.x, y: e.y, text: "WRONG ALIENS" }),
-            (l.bonusHit = { x: e.x, y: e.y, value: -25000, kind: "ufo", text: "PENALTY!", color: "#e2564a" }),
-            { result: "bonus", type: "ufo", value: -25000 }
-          );
-        }
-      }
-      let mcK = A % 52;
-      if (mcK <= 9 && (!l.lastCarHit || A - l.lastCarHit > 50)) {
-        let mcX = -40 + (mcK / 9) * (x + 80);
-        let mcY = 165;
-        if (Me({ x: mcX - 45, y: mcY - 10, w: 90, h: 20, phase: "flying" }, e)) {
-          return (
-            (l.grabs -= 1),
-            (l.lastCarHit = A),
-            (l.saved += 38000),
-            (l.popup = { t: 0, value: 38000, x: e.x, y: e.y, text: "EPSTEIN FILES 38,000 TIMES!" }),
-            (l.bonusHit = { x: e.x, y: e.y, value: 38000, kind: "car", text: "CARS DON'T FLY", color: "#4f8ff0" }),
-            { result: "bonus", type: "car", value: 38000 }
-          );
-        }
-      }
-      let afK = (A + 6) % 46;
-      if (afK <= 15 && (!l.lastPlaneHit || A - l.lastPlaneHit > 50)) {
-        let afX = -40 + (afK / 15) * (x + 80);
-        let afY = 30 + Math.sin((afK / 15) * Math.PI) * -3;
-        if (Me({ x: afX - 30, y: afY - 20, w: 80, h: 50, phase: "flying" }, e)) {
-          return (
-            (l.grabs -= 1),
-            (l.lastPlaneHit = A),
-            (l.saved += 500000),
-            (l.popup = { t: 0, value: 500000, x: e.x, y: e.y, text: "NOT A GIFT!" }),
-            (l.bonusHit = { x: e.x, y: e.y, value: 500000, kind: "airForceOne", text: "RECOVERED!", color: "#7fe08a" }),
-            { result: "bonus", type: "airForceOne", value: 500000 }
-          );
-        }
-      }
-      let moK = (A + 31) % 63;
-      if (moK <= 11 && (!l.lastHeliHit || A - l.lastHeliHit > 50)) {
-        let moX = x + 40 - (moK / 11) * (x + 80);
-        let moY = 62 + Math.sin((moK / 11) * Math.PI) * -3;
-        if (Me({ x: moX - 30, y: moY - 25, w: 80, h: 60, phase: "flying" }, e)) {
-          return (
-            (l.grabs -= 1),
-            (l.lastHeliHit = A),
-            (l.saved += 250000),
-            (l.popup = { t: 0, value: 250000, x: e.x, y: e.y, text: "CLASSIFIED DOCS SECURED!" }),
-            (l.bonusHit = { x: e.x, y: e.y, value: 250000, kind: "marineOne", text: "DOCUMENTS DON'T PLAY GOLF", color: "#7fe08a", scale: 1 }),
-            { result: "bonus", type: "marineOne", value: 250000 }
-          );
-        }
+      for (let s of SPECIALS) {
+        let p = s.period === null ? 0 : (A + s.offset) % s.period;
+        if (p > s.cross) continue;
+        if (l[s.cooldownKey] && A - l[s.cooldownKey] <= s.cooldown) continue;
+        let t = s.pos(p, s.cross);
+        if (!Me({ x: t.x + s.box.dx, y: t.y + s.box.dy, w: s.box.w, h: s.box.h, phase: "flying" }, e)) continue;
+        return grantBonus(l, {
+          grabs: !0,
+          cooldownKey: s.cooldownKey,
+          kind: s.kind,
+          value: s.value,
+          popup: s.popup,
+          banner: s.banner,
+          color: s.color,
+          scale: s.scale,
+          px: e.x,
+          py: e.y,
+          hx: e.x,
+          hy: e.y,
+        });
       }
       for (let n = l.bonuses.length - 1; n >= 0; n -= 1) {
         let t = l.bonuses[n];
@@ -1955,14 +2006,19 @@
           let txt = t.kind === "eagle" ? "FEDERAL CRIME" : (t.kind === "vault" ? "GOLDEN HAMBERDER" : null);
           let btxt = t.kind === "eagle" ? "FEDERAL CRIME!" : (t.kind === "vault" ? "GOLDEN HAMBERDER" : null);
           let bcol = t.kind === "eagle" ? "#e2564a" : null;
-          return (
-            (l.grabs -= 1),
-            (l.saved = Math.max(0, l.saved + val)),
-            (l.bonusHit = { x: t.x + t.w / 2, y: t.y, value: val, kind: t.kind, text: btxt, color: bcol }),
-            (l.popup = { t: 0, value: val, x: t.x, y: t.y, text: txt }),
-            l.bonuses.splice(n, 1),
-            { result: "bonus", type: t.kind, value: val }
-          );
+          let r = grantBonus(l, {
+            grabs: !0,
+            kind: t.kind,
+            value: val,
+            popup: txt,
+            banner: btxt,
+            color: bcol,
+            px: t.x,
+            py: t.y,
+            hx: t.x + t.w / 2,
+            hy: t.y,
+          });
+          return (l.bonuses.splice(n, 1), r);
         }
       }
     }
@@ -2080,7 +2136,7 @@
       return;
     }
     for (let e of J.takeGrabs()) {
-      let n = ve(h, e);
+      let n = resolveClick(h, e);
       if (n.result !== "ignored") {
         if (
           ((D = 1),
@@ -2190,9 +2246,16 @@
     ae(u, x, Z, R);
     for (let t = -4; t < x; t += 21) T(u, g.tuft, t, R - 3);
     ue(u, g, T, x, R);
-    let e = 96,
-      n = Math.round(l.x + l.w / 2 - e / 2);
-    se(u, { x: n, y: R + 7, w: e, h: 11, t: A, monumentX: l.x, monumentW: l.w, sunX: Ae });
+    se(u, {
+      x: POOL_LEFT + 2,
+      y: POOL_TOP + 2,
+      w: POOL_WIDTH - 4,
+      h: POOL_HEIGHT - 4,
+      t: A,
+      monumentX: l.x,
+      monumentW: l.w,
+      sunX: Ae,
+    });
   }
   function fn(l) {
     let e = l.y + l.h,
