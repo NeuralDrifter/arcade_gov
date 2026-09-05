@@ -1,4 +1,6 @@
 (() => {
+  let nextPieceId = 1, uPenalty = null, pendingLinkedDrop = false;
+  const PALETTE = ["#e63946", "#f5f5f5", "#3a7bd5"];
   function bt(h, t = 0) {
     try {
       let s = window.localStorage.getItem(h);
@@ -105,48 +107,26 @@
       t = h.getContext("2d"),
       s = h.width,
       S = h.height,
-      m = 10,
+      m = 15,
       a = 18,
       n = 28,
       w = 80,
       c = S - 60,
       p = c - a * n,
       te = w + m * n,
-      Bt = {
-        I: "#06ffa5",
-        O: "#ffbe0b",
-        T: "#ff006e",
-        L: "#fb5607",
-        J: "#8338ec",
-        S: "#3a86ff",
-        Z: "#ff4444",
-      },
       et = {
-        I: [[1, 1, 1, 1]],
-        O: [
-          [1, 1],
-          [1, 1],
-        ],
-        T: [
-          [0, 1, 0],
-          [1, 1, 1],
-        ],
-        L: [
-          [0, 0, 1],
-          [1, 1, 1],
-        ],
-        J: [
-          [1, 0, 0],
-          [1, 1, 1],
-        ],
-        S: [
-          [0, 1, 1],
-          [1, 1, 0],
-        ],
-        Z: [
-          [1, 1, 0],
-          [0, 1, 1],
-        ],
+        F: [[0,1,1],[1,1,0],[0,1,0]],
+        I: [[1,1,1,1,1]],
+        L: [[1,0],[1,0],[1,0],[1,1]],
+        N: [[0,1],[0,1],[1,1],[1,0]],
+        P: [[1,1],[1,1],[1,0]],
+        T: [[1,1,1],[0,1,0],[0,1,0]],
+        U: [[1,0,1],[1,1,1]],
+        V: [[1,0,0],[1,0,0],[1,1,1]],
+        W: [[1,0,0],[1,1,0],[0,1,1]],
+        X: [[0,1,0],[1,1,1],[0,1,0]],
+        Y: [[0,1],[1,1],[0,1],[0,1]],
+        Z: [[1,1,0],[0,1,0],[0,1,1]]
       },
       lt = Object.keys(et),
       g = "title",
@@ -188,13 +168,13 @@
         (b = 0),
         (D = 0),
         (U = 0),
-        (u = Y()),
-        (B = Y()));
+          u = Y(), uPenalty = null, pendingLinkedDrop = false);
     }
     function Y() {
       let e = lt[Math.floor(Math.random() * lt.length)],
         l = et[e].map((o) => [...o]);
-      return { type: e, shape: l, color: Bt[e], x: Math.floor((m - l[0].length) / 2), y: 0 };
+      let colors = l.map(row => row.map(cell => cell ? PALETTE[Math.floor(Math.random()*PALETTE.length)] : null));
+      return { type: e, shape: l, colors: colors, x: Math.floor((m - l[0].length) / 2), y: 0, pieceId: nextPieceId++, canRotate: true };
     }
     function At(e) {
       let l = e.length,
@@ -214,34 +194,239 @@
         }
       return !1;
     }
+    function findMatches(board) {
+      let toRemove = new Set();
+      let matchScore = 0;
+      for (let r = 0; r < a; r++) {
+        let count = 0, color = null;
+        for (let c = 0; c < m; c++) {
+          let cell = board[r][c];
+          if (cell && cell.color && cell.color === color && cell.color !== "handcuff") count++;
+          else {
+            if (count >= 3) {
+              for (let i = 0; i < count; i++) toRemove.add(`${r},${c - 1 - i}`);
+              matchScore += count * 150;
+            }
+            count = cell && cell.color !== "handcuff" ? 1 : 0;
+            color = cell ? cell.color : null;
+          }
+        }
+        if (count >= 3) {
+          for (let i = 0; i < count; i++) toRemove.add(`${r},${m - 1 - i}`);
+          matchScore += count * 150;
+        }
+      }
+      for (let c = 0; c < m; c++) {
+        let count = 0, color = null;
+        for (let r = 0; r < a; r++) {
+          let cell = board[r][c];
+          if (cell && cell.color && cell.color === color && cell.color !== "handcuff") count++;
+          else {
+            if (count >= 3) {
+              for (let i = 0; i < count; i++) toRemove.add(`${r - 1 - i},${c}`);
+              matchScore += count * 150;
+            }
+            count = cell && cell.color !== "handcuff" ? 1 : 0;
+            color = cell ? cell.color : null;
+          }
+        }
+        if (count >= 3) {
+          for (let i = 0; i < count; i++) toRemove.add(`${a - 1 - i},${c}`);
+          matchScore += count * 150;
+        }
+      }
+      return { toRemove, matchScore };
+    }
+
+    function settleBoard() {
+      for (let iter = 0; iter < 64; iter++) {
+        let groups = [];
+        let visited = new Set();
+        for (let r = 0; r < a; r++) {
+          for (let c = 0; c < m; c++) {
+            if (L[r][c] && !visited.has(`${r},${c}`)) {
+              let pid = L[r][c].pieceId;
+              let group = [];
+              let q = [[r, c]];
+              visited.add(`${r},${c}`);
+              while (q.length > 0) {
+                let [currR, currC] = q.shift();
+                group.push([currR, currC]);
+                let neighbors = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+                for (let [dr, dc] of neighbors) {
+                  let nr = currR + dr, nc = currC + dc;
+                  if (nr >= 0 && nr < a && nc >= 0 && nc < m && L[nr][nc] && L[nr][nc].pieceId === pid && !visited.has(`${nr},${nc}`)) {
+                    visited.add(`${nr},${nc}`);
+                    q.push([nr, nc]);
+                  }
+                }
+              }
+              groups.push(group);
+            }
+          }
+        }
+        groups.sort((g1, g2) => Math.max(...g2.map(p => p[0])) - Math.max(...g1.map(p => p[0])));
+        
+        let moved = false;
+        for (let group of groups) {
+          let canMove = true;
+          for (let [r, c] of group) {
+            if (r + 1 >= a) { canMove = false; break; }
+            if (L[r + 1][c] && !group.some(p => p[0] === r + 1 && p[1] === c)) { canMove = false; break; }
+          }
+          if (canMove) {
+            let newL = group.map(([r, c]) => ({ cell: L[r][c], r: r+1, c: c }));
+            for (let [r, c] of group) L[r][c] = null;
+            for (let obj of newL) L[obj.r][obj.c] = obj.cell;
+            moved = true;
+          }
+        }
+        if (moved) continue;
+        
+        let { toRemove, matchScore } = findMatches(L);
+        if (toRemove.size > 0) {
+          for (let pos of toRemove) {
+            let [r, c] = pos.split(',').map(Number);
+            Dt(w + c * n + n/2, p + r * n + n/2);
+            L[r][c] = null;
+          }
+          T += matchScore;
+          F(10, 300);
+          R(400, 0.3, "sawtooth", 0.1);
+          for (let enemy of I) {
+            if (enemy.state === "walking" && enemy.x >= w && enemy.x <= w + m * n) {
+              enemy.state = "dead";
+              enemy.deathTime = 0;
+              T += 50;
+              Gt(enemy.x, enemy.y - 14, "#ffffff");
+            }
+          }
+          continue;
+        }
+        break;
+      }
+    }
+
     function rt(e) {
       let l = a;
+      let arrestedCols = new Set();
+      for (let enemy of I) {
+          if (enemy.state === "walking") {
+              let col = Math.floor((enemy.x - w) / n);
+              let hit = false;
+              for (let o = 0; o < e.shape.length; o++) {
+                  for (let r = 0; r < e.shape[o].length; r++) {
+                      if (e.shape[o][r] && (e.x + r === col) && (e.y + o === a - 1)) hit = true;
+                  }
+              }
+              if (hit) {
+                  enemy.state = "dead";
+                  enemy.deathTime = 0;
+                  arrestedCols.add(col);
+                  T += 100;
+                  F(4, 150);
+                  R(280, 0.1, "sawtooth", 0.1);
+              }
+          }
+      }
+
       for (let o = 0; o < e.shape.length; o++)
         for (let r = 0; r < e.shape[o].length; r++) {
           if (!e.shape[o][r]) continue;
           let i = e.x + r,
             f = e.y + o;
-          f >= 0 &&
-            f < a &&
-            i >= 0 &&
-            i < m &&
-            ((L[f][i] = e.color), Dt(w + i * n + n / 2, p + f * n + n / 2), f < l && (l = f));
+          if (f >= 0 && f < a && i >= 0 && i < m) {
+            let cellColor = (f === a - 1 && arrestedCols.has(i)) ? "handcuff" : e.colors[o][r]; 
+            L[f][i] = { color: cellColor, pieceId: e.pieceId };
+            Dt(w + i * n + n / 2, p + f * n + n / 2);
+            if (f < l) l = f;
+            if (f === a - 1) arrestedCols.delete(i);
+          }
         }
-      ((T += 10), F(2.5, 90), R(140, 0.08, "square", 0.07), (u = B), (B = Y()), k(u, 0, 0) && nt());
+        
+      settleBoard();
+      T += 10;
+      F(2.5, 90);
+      R(140, 0.08, "square", 0.07);
+      
+      if (arguments[1] !== false) {
+          if (uPenalty) {
+              if (e === u) {
+                  u = uPenalty;
+                  uPenalty = null;
+                  u.canRotate = false;
+              } else {
+                  uPenalty = null;
+                  u.canRotate = false;
+              }
+          } else {
+              u = Y();
+              u.canRotate = true;
+              if (pendingLinkedDrop) {
+                  pendingLinkedDrop = false;
+                  uPenalty = Y();
+                  uPenalty.x = 0;
+                  uPenalty.canRotate = true;
+              }
+              if (k(u, 0, 0) || (uPenalty && k(uPenalty, 0, 0))) nt();
+          }
+      }
     }
     function it() {
+      let moved = false;
       let e = 0;
-      for (; !k(u, 0, 1);) (u.y++, e++);
-      ((T += e * 2), R(90, 0.12, "sawtooth", 0.09), rt(u));
+      while (true) {
+          let u_hit = k(u, 0, 1);
+          let up_hit = uPenalty ? k(uPenalty, 0, 1) : false;
+          
+          if (u_hit && up_hit) {
+              let p2 = uPenalty;
+              uPenalty = null;
+              rt(u, false);
+              rt(p2, true);
+              break;
+          } else if (u_hit) {
+              rt(u, true);
+              break;
+          } else if (up_hit) {
+              rt(uPenalty, true);
+              break;
+          } else {
+              u.y++;
+              if (uPenalty) uPenalty.y++;
+              e++;
+              moved = true;
+          }
+      }
+      if (moved) {
+          T += e * 2;
+          R(90, 0.12, "sawtooth", 0.09);
+      }
     }
     function ft() {
+      if (u.canRotate === false) return;
       let e = At(u.shape),
+        c_rot = At(u.colors),
         l = [0, -1, 1, -2, 2];
-      for (let o of l)
+      let p_e = uPenalty ? At(uPenalty.shape) : null;
+      let p_c_rot = uPenalty ? At(uPenalty.colors) : null;
+      
+      for (let o of l) {
         if (!k(u, o, 0, e)) {
-          ((u.shape = e), (u.x += o), R(420, 0.04, "square", 0.05));
-          return;
+          if (!uPenalty || !k(uPenalty, o, 0, p_e)) {
+            u.shape = e;
+            u.colors = c_rot;
+            u.x += o;
+            if (uPenalty) {
+              uPenalty.shape = p_e;
+              uPenalty.colors = p_c_rot;
+              uPenalty.x += o;
+            }
+            R(420, 0.04, "square", 0.05);
+            return;
+          }
         }
+      }
     }
     function Et(e) {
       for (let l = 0; l < a; l++) if (L[l][e]) return a - l;
@@ -287,6 +472,15 @@
                   (l.deathTime = 0),
                   (l.x = w + (o + 1) * n),
                   (T += 50 * l.strengthCheck),
+                    (() => {
+                      let dmg = l.strengthCheck;
+                      for (let r = a - 1; r >= 0 && dmg > 0; r--) {
+                          if (L[r][o]) {
+                              L[r][o] = null;
+                              dmg--;
+                          }
+                      }
+                    })(),
                   Gt(l.x, l.y - 14, l.type.color),
                   F(3.5, 120),
                   R(280, 0.12, "sawtooth", 0.09),
@@ -388,7 +582,23 @@
         l.addColorStop(0.88, "#ff2a6d"),
         l.addColorStop(1, "#ffae42"),
         (t.fillStyle = l),
-        t.fillRect(0, 0, s, c));
+          t.fillRect(0, 0, s, c));
+          
+        // Draw the NEVER FORGET NEVER FORGIVE repeating background
+        t.save();
+        t.font = '16px "Press Start 2P"';
+        t.fillStyle = "rgba(120, 150, 210, 0.085)";
+        t.textAlign = "center";
+        let stepX = 280;
+        let stepY = 120;
+        let tOffset = (e * 0.015) % stepY;
+        for(let dx = -stepX; dx < s + stepX; dx += stepX) {
+            for(let dy = -stepY; dy < c + stepY; dy += stepY) {
+                t.fillText("NEVER FORGET", dx, dy - tOffset);
+                t.fillText("NEVER FORGIVE", dx + stepX/2, dy + stepY/2 - tOffset);
+            }
+        }
+        t.restore();
       for (let y of Kt) {
         let O = 0.5 + 0.5 * Math.sin(e * 0.003 * y.speed + y.brightness * 10);
         ((t.fillStyle = `rgba(255, 240, 255, ${0.25 + O * 0.7})`),
@@ -416,12 +626,54 @@
         (t.fillStyle = "rgba(10, 4, 32, 0.85)"));
       let v = [42, 56, 71, 87, 105, 125];
       for (let y of v) t.fillRect(o - i, r - i + y, i * 2, 3);
-      (t.restore(), (t.fillStyle = "#1a0628"), t.beginPath(), t.moveTo(0, c));
-      for (let y of st)
-        (t.lineTo(y.x, c - y.h),
-          t.lineTo(y.x + y.w * 0.5, c - y.h * 1.4),
-          t.lineTo(y.x + y.w, c - y.h * 0.7));
-      (t.lineTo(s, c),
+      t.restore();
+        t.fillStyle = "#1a0628";// Draw Full Tycoon Skyline Silhouette
+        let fedBlock = ["kkkkkkkkkkkk","klllllllllk.","klwlwlwlwlk.","kllllllllllk","klwlwlwlwlk.","kllllllllllk","klwlwlwlwlk.","kkkkkkkkkkkk"];
+        let treasury = ["..............................","....kkkkkkkkkkkkkkkkkkkkkk....","...klllllllllllllllllllllk....","..kkkkkkkkkkkkkkkkkkkkkkkkk...","..kslslslslslslslslslslslsk...","..kslslslslslslslslslslslsk...","..kslslslslslslslslslslslsk...","..kslslslslslslslslslslslsk...","..kllllllllllllllllllllllk....",".kkkkkkkkkkkkkkkkkkkkkkkkkk..."];
+        let bep = ["kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk","klllllllllllllllllllllllllllllk.","klwlwlwlwlwlwlwlwlwlwlwlwlwlwlk.","kllllllllllllllllllllllllllllllk","klwlwlwlwlwlwlwlwlwlwlwlwlwlwlk.","kllllllllllllllllllllllllllllllk","klwlwlwlwlwlwlwlwlwlwlwlwlwlwlk.","kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"];
+        let castle = ["..r.............r..",".krk...........krk.",".krk...krrrk...krk.","krrrk.krrrrrk.krrrk","krrrk.krrrrrk.krrrk","krrrkkrrrrrrrkkrrrk","krrrkrrrrrrrrrkrrrk","krwrkrrwrrrwrrkrwrk","krrrrrrrrrrrrrrrrrk","krwrrrwrrrwrrrwrrrk","kkkkkkkkkkkkkkkkkkk"];
+        let jefferson = ["..............l.............",".............ll.............","...........kkllkk...........","..........klllllllk.........",".........kllllllllsk........","........kslllllllllsk.......","........kslllllllllsk.......",".......kkslllllllllskk......","......kslllwllwllllsk.......",".....ksllllllllllllsk.......","....kslllllllllllllssk......","...kslwlwlwlwlwlwlwlssk.....","..kkslllllllllllllllsdkk....",".kslwlwlwlwlwlwlwlwlsdk.....",".kslllllllllllllllllsdk.....",".kkkkkkkkkkkkkkkkkkkkkk....."];
+        let capitol = ["..........ss..........","..........ll..........",".........kllk.........","........klllllk.......",".......kllllllsk......",".......kllllllsk......","......kslllllllsk.....","......kslllllllsk.....",".....kkslllllllskk....","....kslllwllwllllsk...","...ksllllllllllllsk...","..kslllllllllllllssk..",".kslwlwlwlwlwlwlwlssk.","kkslllllllllllllllsdkk","kslwlwlwlwlwlwlwlwlsdk","kslllllllllllllllllsdk","kkkkkkkkkkkkkkkkkkkkkk"];
+        let whiteHouse = [".................................................g..................................................",".................................................g..................................................","................................................kllk................................................","............................................kllllllllllk............................................","........................................kllllllllllllllllllk........................................","....................................kllllllllllllllllllllllllllk....................................","................................kllllllllllllllllllllllllllllllllllk................................","............................kllllllllllllllllllllllllllllllllllllllllllk............................","...........................kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk...........................","...........................kddddddddddddddddddddddddddddddddddddddddddddk...........................","kkkkkkkkkkkkkkkkkkkkkkkk...ksllsllsllsllsllsllsllsllsllsllsllsllsllsllslk...kkkkkkkkkkkkkkkkkkkkkkkk","kllllllllllllllllllllllk...ksllsllsllsllsllsllsllsllsllsllsllsllsllsllslk...kllllllllllllllllllllllk","klwlwlwlwlwlwlwlwlwlwlwk...ksllsllsllsllsllsllsllsllsllsllsllsllsllsllslk...klwlwlwlwlwlwlwlwlwlwlwk","kllllllllllllllllllllllk...ksllsllsllsllsllsllsllsllsllsllsllsllsllsllslk...kllllllllllllllllllllllk","klwlwlwlwlwlwlwlwlwlwlwk...ksllsllsllsllsllsllsllsllsllsllsllsllsllsllslk...klwlwlwlwlwlwlwlwlwlwlwk","kllllllllllllllllllllllk...ksllsllsllsllsllsllsllsllsllsllsllsllsllsllslk...kllllllllllllllllllllllk","klwlwlwlwlwlwlwlwlwlwlwk...ksllsllsllsllsllsllsllsllsllsllsllsllsllsllslk...klwlwlwlwlwlwlwlwlwlwlwk","kllllllllllllllllllllllk...ksllsllsllsllsllsllsllsllsllsllsllsllsllsllslk...kllllllllllllllllllllllk","kddddddddddddddddddddddk...kllllllllllllllllllllllllllllllllllllllllllllk...kddddddddddddddddddddddk","kkkkkkkkkkkkkkkkkkkkkkkk...kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk...kkkkkkkkkkkkkkkkkkkkkkkk"];
+        let monumentCap = ["....ll....","...llss...","..lllsss..","..lllsss..",".llllssss.","lllllsssss"];
+        
+        let drawB = (arr, px, py, scale) => {
+            for (let row = 0; row < arr.length; row++) {
+                for (let col = 0; col < arr[row].length; col++) {
+                    if (arr[row][col] !== ".") {
+                        t.rect(px + col * scale, py + row * scale, scale, scale);
+                    }
+                }
+            }
+        };
+
+        t.beginPath();
+        let sc = 3.5;
+        let bY = c;
+        for (let f = -6; f < 256; f += 26) {
+            if (!(f + 12 > 0 && f < 120)) {
+                drawB(fedBlock, f * sc, bY - fedBlock.length * sc, sc);
+            }
+        }
+        drawB(treasury, 108 * sc, bY - treasury.length * sc, sc);
+        drawB(bep, 232 * sc, bY - bep.length * sc, sc);
+        drawB(castle, 186 * sc, bY - castle.length * sc, sc);
+        drawB(jefferson, 150 * sc, bY - jefferson.length * sc, sc);
+        drawB(capitol, 208 * sc, bY - capitol.length * sc, sc);
+        
+        let mw = monumentCap[0].length * sc;
+        let mh = monumentCap.length * sc;
+        let mx = 128 * sc;
+        let my = bY - (monumentCap[0].length * 10 * sc);
+        drawB(monumentCap, mx, my, sc);
+        t.rect(mx, my + mh, mw, bY - (my + mh));
+        
+        drawB(whiteHouse, 8 * sc, bY - whiteHouse.length * sc, sc);
+
+        t.moveTo(0, c);
+        t.lineTo(0, c);
+
+        (t.lineTo(s, c),
         t.closePath(),
         t.fill(),
         (t.fillStyle = "#0a0218"),
@@ -432,10 +684,7 @@
         t.bezierCurveTo(700, c - 42, 820, c - 20, s, c - 30),
         t.lineTo(s, c),
         t.closePath(),
-        t.fill(),
-        J(440, c - 4, 1),
-        J(630, c - 6, 1.4),
-        J(800, c - 2, 0.85));
+        t.fill());
       let tt = t.createLinearGradient(0, c, 0, S);
       (tt.addColorStop(0, "#3a0a4a"),
         tt.addColorStop(1, "#06000f"),
@@ -477,36 +726,68 @@
         t.fillRect(e - i / 2 - 1, l - f, 1, f));
     }
     function $(e, l, o, r) {
-      ((t.fillStyle = o),
-        t.fillRect(e, l, n, n),
-        (t.fillStyle = "rgba(255, 255, 255, 0.35)"),
-        t.fillRect(e + 1, l + 1, n - 2, 2),
-        t.fillRect(e + 1, l + 1, 2, n - 2),
-        (t.fillStyle = "rgba(0, 0, 0, 0.45)"),
-        t.fillRect(e + 1, l + n - 3, n - 2, 2),
-        t.fillRect(e + n - 3, l + 1, 2, n - 2),
-        (t.fillStyle = "rgba(0, 0, 0, 0.55)"),
-        t.fillRect(e, l, n, 1),
-        t.fillRect(e, l, 1, n),
-        t.fillRect(e, l + n - 1, n, 1),
-        t.fillRect(e + n - 1, l, 1, n),
-        r && ((t.fillStyle = "rgba(0, 0, 0, 0.4)"), t.fillRect(e, l + Math.floor(n / 2), n, 1)));
+        let c = n * 0.28;
+        t.fillStyle = o;
+        t.beginPath();
+        t.moveTo(e + c, l);
+        t.lineTo(e + n - c, l);
+        t.lineTo(e + n, l + c);
+        t.lineTo(e + n, l + n - c);
+        t.lineTo(e + n - c, l + n);
+        t.lineTo(e + c, l + n);
+        t.lineTo(e, l + n - c);
+        t.lineTo(e, l + c);
+        t.closePath();
+        t.fill();
+        
+        t.strokeStyle = "rgba(0,0,0,0.6)";
+        t.lineWidth = 1.5;
+        t.stroke();
+
+        t.strokeStyle = "rgba(255,255,255,0.4)";
+        t.lineWidth = 1;
+        t.beginPath();
+        t.moveTo(e + c + 1, l + 2);
+        t.lineTo(e + n - c - 1, l + 2);
+        t.lineTo(e + n - 2, l + c + 1);
+        t.lineTo(e + n - 2, l + n - c - 1);
+        t.lineTo(e + n - c - 1, l + n - 2);
+        t.lineTo(e + c + 1, l + n - 2);
+        t.lineTo(e + 2, l + n - c - 1);
+        t.lineTo(e + 2, l + c + 1);
+        t.closePath();
+        t.stroke();
+
+        if (r) {
+            t.fillStyle = "rgba(0, 0, 0, 0.4)";
+            t.fillRect(e + 3, l + Math.floor(n / 2) - 1, n - 6, 2);
+        }
     }
     function Wt() {
-      ((t.fillStyle = "rgba(0, 0, 0, 0.35)"),
-        t.fillRect(w, p, m * n, a * n),
-        (t.strokeStyle = "rgba(255, 255, 255, 0.04)"),
-        (t.lineWidth = 1));
-      for (let e = 1; e < m; e++)
-        (t.beginPath(),
-          t.moveTo(w + e * n + 0.5, p),
-          t.lineTo(w + e * n + 0.5, p + a * n),
-          t.stroke());
-      for (let e = 1; e < a; e++)
-        (t.beginPath(),
-          t.moveTo(w, p + e * n + 0.5),
-          t.lineTo(w + m * n, p + e * n + 0.5),
-          t.stroke());
+      t.fillStyle = "rgba(0, 0, 0, 0.35)";
+      t.fillRect(w, p, m * n, a * n);
+      
+      t.strokeStyle = "rgba(255, 255, 255, 0.06)";
+      t.lineWidth = 1;
+      let c = n * 0.28;
+      
+      t.beginPath();
+      for (let e = 0; e < a; e++) {
+        for (let l = 0; l < m; l++) {
+          let cx = w + l * n;
+          let cy = p + e * n;
+          t.moveTo(cx + c, cy);
+          t.lineTo(cx + n - c, cy);
+          t.lineTo(cx + n, cy + c);
+          t.lineTo(cx + n, cy + n - c);
+          t.lineTo(cx + n - c, cy + n);
+          t.lineTo(cx + c, cy + n);
+          t.lineTo(cx, cy + n - c);
+          t.lineTo(cx, cy + c);
+          t.lineTo(cx + c, cy);
+        }
+      }
+      t.stroke();
     }
     function _t() {
       ((t.strokeStyle = "#ff006e"),
@@ -518,32 +799,41 @@
     }
     function Nt() {
       for (let e = 0; e < a; e++)
-        for (let l = 0; l < m; l++) L[e][l] && $(w + l * n, p + e * n, L[e][l], !0);
+        for (let l = 0; l < m; l++) {
+          if (L[e][l]) {
+            let pid = L[e][l].pieceId;
+            let b = {
+              top: e > 0 && L[e-1][l] && L[e-1][l].pieceId === pid,
+              bottom: e < a-1 && L[e+1][l] && L[e+1][l].pieceId === pid,
+              left: l > 0 && L[e][l-1] && L[e][l-1].pieceId === pid,
+              right: l < m-1 && L[e][l+1] && L[e][l+1].pieceId === pid
+            };
+            $(w + l * n, p + e * n, L[e][l].color, !0, b);
+          }
+        }
     }
     function Ut() {
-      let e = 0;
-      for (; !k(u, 0, e + 1);) e++;
-      t.lineWidth = 1.5;
-      for (let l = 0; l < u.shape.length; l++)
-        for (let o = 0; o < u.shape[l].length; o++) {
-          if (!u.shape[l][o]) continue;
-          let r = w + (u.x + o) * n,
-            i = p + (u.y + l + e) * n;
-          ((t.strokeStyle = u.color),
-            (t.globalAlpha = 0.35),
-            t.strokeRect(r + 2, i + 2, n - 4, n - 4));
-        }
-      t.globalAlpha = 1;
+      t.fillStyle = "rgba(255, 255, 255, 0.15)";
+      let pieceWidth = u.shape[0].length;
+      t.fillRect(w + u.x * n, p, pieceWidth * n, a * n);
+      t.fillStyle = "rgba(255, 255, 255, 0.4)";
+      t.fillRect(w + u.x * n, p + a * n - 4, pieceWidth * n, 4);
     }
     function qt() {
-      ((t.shadowColor = u.color), (t.shadowBlur = 8));
-      for (let e = 0; e < u.shape.length; e++)
-        for (let l = 0; l < u.shape[e].length; l++) {
-          if (!u.shape[e][l]) continue;
-          let o = w + (u.x + l) * n,
-            r = p + (u.y + e) * n;
-          r >= p - n && $(o, r, u.color, !1);
-        }
+      t.shadowBlur = 8;
+      let pieces = uPenalty ? [u, uPenalty] : [u];
+      for (let pObj of pieces) {
+        for (let e = 0; e < pObj.shape.length; e++)
+          for (let l = 0; l < pObj.shape[e].length; l++) {
+            if (!pObj.shape[e][l]) continue;
+            let o = w + (pObj.x + l) * n,
+              r = p + (pObj.y + e) * n;
+            if (r >= p - n) {
+              t.shadowColor = pObj.colors[e][l];
+              $(o, r, pObj.colors[e][l], !1);
+            }
+          }
+      }
       t.shadowBlur = 0;
     }
     function dt(e, l) {
@@ -652,8 +942,8 @@
         (t.font = '8px "Press Start 2P"'),
         (t.fillStyle = "#5a2a00"),
         (t.textAlign = "center"),
-        t.fillText("SOUTHERN", 720, l - 26),
-        t.fillText("BORDER \u2190", 720, l - 12),
+        t.fillText("THE", 720, l - 26),
+        t.fillText("CAPITOL \u2190", 720, l - 12),
         (t.textAlign = "left"),
         (t.shadowColor = "#ffbe0b"),
         (t.shadowBlur = 18),
@@ -678,57 +968,56 @@
         (t.fillStyle = "#ff006e"),
         (t.shadowColor = "#ff006e"),
         (t.shadowBlur = 10),
-        t.fillText("BUILD THE WALL", 20, 32),
+        t.fillText("STOP THE INSURRECTION", 20, 32),
         (t.font = '9px "Press Start 2P"'),
         (t.fillStyle = "#ffbe0b"),
         (t.shadowColor = "#ffbe0b"),
         (t.shadowBlur = 6),
-        t.fillText("SCORE", 250, 18),
+        t.fillText("SCORE", 330, 18),
         (t.fillStyle = "#fff"),
         (t.shadowBlur = 4),
-        t.fillText(String(T).padStart(6, "0"), 250, 36),
+        t.fillText(String(T).padStart(6, "0"), 330, 36),
         (t.fillStyle = "#06ffa5"),
         (t.shadowColor = "#06ffa5"),
         (t.shadowBlur = 6),
-        t.fillText("HI", 380, 18),
+        t.fillText("HI", 430, 18),
         (t.fillStyle = "#fff"),
         (t.shadowBlur = 4),
-        t.fillText(String(Math.max(G.value(), T)).padStart(6, "0"), 380, 36),
+        t.fillText(String(Math.max(G.value(), T)).padStart(6, "0"), 430, 36),
         (t.fillStyle = "#8338ec"),
         (t.shadowColor = "#8338ec"),
         (t.shadowBlur = 6),
-        t.fillText("LV", 510, 18),
+        t.fillText("LV", 530, 18),
         (t.fillStyle = "#fff"),
         (t.shadowBlur = 4),
-        t.fillText(String(C).padStart(2, "0"), 510, 36),
+        t.fillText(String(C).padStart(2, "0"), 530, 36),
         (t.fillStyle = "#ff006e"),
         (t.shadowColor = "#ff006e"),
         (t.shadowBlur = 6),
-        t.fillText("LIVES", 580, 18),
+        t.fillText("LIVES", 600, 18),
         (t.shadowBlur = 0));
       for (let r = 0; r < 3; r++) {
         t.fillStyle = r < W ? "#ff006e" : "rgba(255, 0, 110, 0.18)";
-        let i = 580 + r * 18;
+        let i = 600 + r * 18;
         (t.fillRect(i, 28, 12, 4),
           t.fillRect(i + 2, 26, 8, 2),
           t.fillRect(i + 1, 32, 10, 6),
           t.fillRect(i + 3, 38, 6, 2));
       }
-      ((t.fillStyle = "#06ffa5"),
-        (t.shadowColor = "#06ffa5"),
-        (t.shadowBlur = 6),
-        t.fillText("NEXT", 710, 18),
-        (t.shadowBlur = 0));
-      let e = 780,
-        l = 14,
-        o = 11;
-      for (let r = 0; r < B.shape.length; r++)
-        for (let i = 0; i < B.shape[r].length; i++)
-          B.shape[r][i] &&
-            ((t.fillStyle = B.color),
-            t.fillRect(e + i * o, l + r * o, o - 1, o - 1),
-            (t.fillStyle = "rgba(255, 255, 255, 0.3)"),
-            t.fillRect(e + i * o, l + r * o, o - 1, 1));
+      
+      let maxStr = 0;
+      for (let enemy of I) {
+          if (enemy.state === "walking" && enemy.strength > maxStr) maxStr = enemy.strength;
+      }
+      t.font = '10px "Press Start 2P"';
+      t.fillStyle = "#ff006e";
+      t.shadowColor = "#ff006e";
+      t.shadowBlur = 8;
+      t.fillText("TRAITORS: " + I.length, 650, 24);
+      t.fillStyle = "#ffbe0b";
+      t.shadowColor = "#ffbe0b";
+      t.fillText("THREAT: LVL " + maxStr, 650, 42);
+      t.shadowBlur = 0;
       ((t.font = '8px "Press Start 2P"'),
         (t.fillStyle = E ? "#ff006e" : "rgba(255, 255, 255, 0.4)"),
         t.fillText(E ? "[M]UTED" : "[M]", 870, 12));
@@ -768,15 +1057,15 @@
         (t.shadowColor = "#ff006e"),
         (t.shadowBlur = 35),
         (t.fillStyle = "#ff006e"),
-        t.fillText("BUILD", o - 3, 175 + r),
+        t.fillText("STOP THE", o - 3, 175 + r),
         (t.shadowColor = "#06ffa5"),
         (t.fillStyle = "#06ffa5"),
-        t.fillText("THE WALL", o + 3, 250 + r),
+        t.fillText("INSURRECTION", o + 3, 250 + r),
         (t.shadowBlur = 12),
         (t.font = '14px "Press Start 2P"'),
         (t.fillStyle = "#ffbe0b"),
         (t.shadowColor = "#ffbe0b"),
-        t.fillText("\u2605 ZOMBIE BORDER SIEGE \u2605", o, 305),
+        t.fillText("\u2605 STOP THE INSURRECTION \u2605", o, 305),
         (t.font = '10px "Press Start 2P"'),
         (t.fillStyle = "#ffffff"),
         (t.shadowColor = "#ffffff"),
@@ -818,7 +1107,7 @@
         (t.shadowColor = "#ff006e"),
         (t.shadowBlur = 35),
         (t.fillStyle = "#ff006e"),
-        t.fillText("BORDER", l - 3, 215),
+        t.fillText("CAPITOL", l - 3, 215),
         t.fillText("BREACHED", l + 3, 285),
         (t.font = '14px "Press Start 2P"'),
         (t.shadowBlur = 12),
@@ -865,10 +1154,34 @@
       (Ht(), x && x.state === "suspended" && x.resume());
     }
     function X(e) {
-      g === "playing" && (k(u, e, 0) || ((u.x += e), R(220, 0.025, "square", 0.04)));
+      if (g !== "playing") return;
+      if (k(u, e, 0)) return;
+      if (uPenalty && k(uPenalty, e, 0)) return;
+      u.x += e;
+      if (uPenalty) uPenalty.x += e;
+      R(220, 0.025, "square", 0.04);
+    }
+    function handleGravity() {
+      let u_hit = k(u, 0, 1);
+      let up_hit = uPenalty ? k(uPenalty, 0, 1) : false;
+      
+      if (u_hit && up_hit) {
+          let p2 = uPenalty;
+          uPenalty = null;
+          rt(u, false);
+          rt(p2, true);
+      } else if (u_hit) {
+          rt(u, true);
+      } else if (up_hit) {
+          rt(uPenalty, true);
+      } else {
+          u.y++;
+          if (uPenalty) uPenalty.y++;
+          T += 1;
+      }
     }
     function St() {
-      g === "playing" && (k(u, 0, 1) || (u.y++, (T += 1)));
+      if (g === "playing") handleGravity();
     }
     function yt() {
       (ot(), (g = "playing"));
@@ -997,7 +1310,7 @@
           R(660, 0.08, "square", 0.07),
           R(880, 0.12, "square", 0.06)),
           (_ += l),
-          _ >= Z && ((_ = 0), k(u, 0, 1) ? rt(u) : u.y++),
+          _ >= Z && ((_ = 0), handleGravity()),
           (N -= l),
           N <= 0 && (Ot(), (N = z * (0.65 + Math.random() * 0.7))),
           Lt(l),
