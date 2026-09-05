@@ -420,7 +420,8 @@ footer.game-bar .hint {
 
 
 
-<script>(() => {
+<script>
+(() => {
   function _l(l, e = {}) {
     let n = e.width ?? 256,
       t = e.height ?? 224,
@@ -785,7 +786,11 @@ footer.game-bar .hint {
     return k;
   }
   function P(l, e, n, t, o, r = 1) {
-    B(l, e, Math.round(n - K(e, r) / 2), t, o, r);
+    let w = l.canvas.width,
+      k = K(e, r);
+    for (; k > w - 2 && r > 1; ) ((r -= 1), (k = K(e, r)));
+    let c = Math.max(k / 2 + 1, Math.min(w - 1 - k / 2, n));
+    B(l, e, Math.round(c - k / 2), t, o, r);
   }
   function Hl({ update: l, render: e, fps: n = 60 }) {
     let t = 1 / n,
@@ -1032,8 +1037,8 @@ footer.game-bar .hint {
     let r = o.getContext("2d");
     return (
       (r.imageSmoothingEnabled = !1),
-      B(r,"34",8,10, n, t),
-      B(r,"91",e-40,e-38, n, t),
+      B(r, "34", 8, 10, n, t),
+      B(r, "91", e - 40, e - 38, n, t),
       o
     );
   }
@@ -1381,7 +1386,7 @@ footer.game-bar .hint {
       "...kkttkk...",
     ],
     ut = ["..k..", ".krk.", "kwrwk", ".kbk.", "..k.."],
-    wt = [".k.k.", "kbkbk", ".kkk."],
+    wt = [".kkk.", "kwrwk", ".kkk."],
     gt = [".k.", "kkk", ".k.", "k.k"],
     ht = [".kkkk.", "kwwwwk", "kkkkkk", ".k..k."],
     N = { k: "#5c6474", s: "#c9cfdb", l: "#e6eaf2", d: "#9aa3b4", w: "#7b8496", g: "#4f7f5a" },
@@ -1591,10 +1596,10 @@ footer.game-bar .hint {
     }
   }
   function fl(l, e, n, t) {
-    ((l.fillStyle = "rgba(12, 26, 18, 0.30)"),
-      l.fillRect(e - 3, t, n + 6, 3),
-      (l.fillStyle = "rgba(12, 26, 18, 0.16)"),
-      l.fillRect(e - 6, t + 2, n + 12, 3));
+    ((l.fillStyle = "rgba(45, 120, 60, 0.75)"),
+      l.fillRect(e - 10, t, n + 20, 4),
+      (l.fillStyle = "rgba(45, 140, 60, 0.55)"),
+      l.fillRect(e - 15, t + 4, n + 30, 4));
   }
   function ke(l, e, n, t, o) {
     let r = "#e8b23a",
@@ -1670,9 +1675,9 @@ footer.game-bar .hint {
       (l.fillStyle = "#8e887c"),
       l.fillRect(e - 2, n + o + 1, t + 4, 1));
     let i = l.createLinearGradient(0, n, 0, n + o);
-    (i.addColorStop(0, "#2c4f74"),
-      i.addColorStop(0.45, "#3f6f9a"),
-      i.addColorStop(1, "#5a92b8"),
+    (i.addColorStop(0, "#1f4a23"),
+      i.addColorStop(0.45, "#2a6a32"),
+      i.addColorStop(1, "#3c8c45"),
       (l.fillStyle = i),
       l.fillRect(e, n, t, o),
       (l.fillStyle = "rgba(232, 149, 111, 0.22)"),
@@ -2285,22 +2290,109 @@ footer.game-bar .hint {
       (l.phaseT = 0));
   }
   function ve(l, e) {
-    if (l.grabs > 0)
-      for (let n = l.bonuses.length - 1; n >= 0; n -= 1) {
-        let t = l.bonuses[n];
-        if (Me({ ...t, phase: "flying" }, e))
+    if (l.grabs > 0) {
+      // Reflecting pool in front of the monument: free joke click, no reward, no penalty, no dot used.
+      if (e.x >= 83 && e.x <= 182 && e.y >= R + 5 && e.y <= R + 19) {
+        return (
+          (l.popup = { t: 0, value: 0, x: e.x, y: e.y, text: "MAGA - MAKE ALGAE GREAT AGAIN" }),
+          { result: "pool", value: 0 }
+        );
+      }
+      let kiteX = 206 + Math.sin(A * 0.75) * 7;
+      let kiteY = 50 + Math.cos(A * 0.75 * 1.3) * 3;
+      if (!l.lastKiteHit || A - l.lastKiteHit > 50) {
+        if (Me({ x: kiteX - 15, y: kiteY - 15, w: 40, h: 40, phase: "flying" }, e)) {
           return (
             (l.grabs -= 1),
-            (l.saved += t.value),
-            (l.bonusHit = { x: t.x + t.w / 2, y: t.y, value: t.value, kind: t.kind }),
-            (l.popup = { t: 0, value: t.value, x: t.x, y: t.y }),
-            l.bonuses.splice(n, 1),
-            { result: "bonus", type: t.kind, value: t.value }
+            (l.lastKiteHit = A),
+            (l.popup = { t: 0, value: 0, x: e.x, y: e.y, text: "GO FLY A KITE!" }),
+            (l.bonusHit = { x: e.x, y: e.y, value: 0, kind: "kite", text: "PAUL GARBER SAYS GO FLY A KITE", color: "#4f8ff0", scale: 1 }),
+            { result: "bonus", type: "kite", value: 0 }
           );
+        }
       }
+      let uS = A % 38;
+      if (uS <= 13 && (!l.lastUfoHit || A - l.lastUfoHit > 40)) {
+        let ux = -30 + (uS / 13) * (x + 60);
+        let uy = 40 + Math.sin(A * 0.4) * 4;
+        if (Me({ x: ux - 15, y: uy - 15, w: 40, h: 40, phase: "flying" }, e)) {
+          return (
+            (l.grabs -= 1),
+            (l.lastUfoHit = A),
+            (l.saved = Math.max(0, l.saved - 25000)),
+            (l.popup = { t: 0, value: -25000, x: e.x, y: e.y, text: "WRONG ALIENS" }),
+            (l.bonusHit = { x: e.x, y: e.y, value: -25000, kind: "ufo", text: "PENALTY!", color: "#e2564a" }),
+            { result: "bonus", type: "ufo", value: -25000 }
+          );
+        }
+      }
+      let mcK = A % 52;
+      if (mcK <= 9 && (!l.lastCarHit || A - l.lastCarHit > 50)) {
+        let mcX = -40 + (mcK / 9) * (x + 80);
+        let mcY = 165;
+        if (Me({ x: mcX - 45, y: mcY - 10, w: 90, h: 20, phase: "flying" }, e)) {
+          return (
+            (l.grabs -= 1),
+            (l.lastCarHit = A),
+            (l.saved += 38000),
+            (l.popup = { t: 0, value: 38000, x: e.x, y: e.y, text: "EPSTEIN FILES 38,000 TIMES!" }),
+            (l.bonusHit = { x: e.x, y: e.y, value: 38000, kind: "car", text: "CARS DON'T FLY", color: "#4f8ff0" }),
+            { result: "bonus", type: "car", value: 38000 }
+          );
+        }
+      }
+      let afK = (A + 6) % 46;
+      if (afK <= 15 && (!l.lastPlaneHit || A - l.lastPlaneHit > 50)) {
+        let afX = -40 + (afK / 15) * (x + 80);
+        let afY = 30 + Math.sin((afK / 15) * Math.PI) * -3;
+        if (Me({ x: afX - 30, y: afY - 20, w: 80, h: 50, phase: "flying" }, e)) {
+          return (
+            (l.grabs -= 1),
+            (l.lastPlaneHit = A),
+            (l.saved += 500000),
+            (l.popup = { t: 0, value: 500000, x: e.x, y: e.y, text: "NOT A GIFT!" }),
+            (l.bonusHit = { x: e.x, y: e.y, value: 500000, kind: "airForceOne", text: "RECOVERED!", color: "#7fe08a" }),
+            { result: "bonus", type: "airForceOne", value: 500000 }
+          );
+        }
+      }
+      let moK = (A + 31) % 63;
+      if (moK <= 11 && (!l.lastHeliHit || A - l.lastHeliHit > 50)) {
+        let moX = x + 40 - (moK / 11) * (x + 80);
+        let moY = 62 + Math.sin((moK / 11) * Math.PI) * -3;
+        if (Me({ x: moX - 30, y: moY - 25, w: 80, h: 60, phase: "flying" }, e)) {
+          return (
+            (l.grabs -= 1),
+            (l.lastHeliHit = A),
+            (l.saved += 250000),
+            (l.popup = { t: 0, value: 250000, x: e.x, y: e.y, text: "CLASSIFIED DOCS SECURED!" }),
+            (l.bonusHit = { x: e.x, y: e.y, value: 250000, kind: "marineOne", text: "DOCUMENTS DON'T PLAY GOLF", color: "#7fe08a", scale: 1 }),
+            { result: "bonus", type: "marineOne", value: 250000 }
+          );
+        }
+      }
+      for (let n = l.bonuses.length - 1; n >= 0; n -= 1) {
+        let t = l.bonuses[n];
+        if (Me({ ...t, phase: "flying" }, e)) {
+          let val = t.kind === "eagle" ? -15000 : t.value;
+          let txt = t.kind === "eagle" ? "FEDERAL CRIME" : (t.kind === "vault" ? "GOLDEN HAMBERDER" : null);
+          let btxt = t.kind === "eagle" ? "FEDERAL CRIME!" : (t.kind === "vault" ? "GOLDEN HAMBERDER" : null);
+          let bcol = t.kind === "eagle" ? "#e2564a" : null;
+          return (
+            (l.grabs -= 1),
+            (l.saved = Math.max(0, l.saved + val)),
+            (l.bonusHit = { x: t.x + t.w / 2, y: t.y, value: val, kind: t.kind, text: btxt, color: bcol }),
+            (l.popup = { t: 0, value: val, x: t.x, y: t.y, text: txt }),
+            l.bonuses.splice(n, 1),
+            { result: "bonus", type: t.kind, value: val }
+          );
+        }
+      }
+    }
     if (l.phase !== "flying" || l.grabs <= 0) return { result: "ignored" };
     if (((l.grabs -= 1), Me(l.target, e))) {
       let { type: n, value: t } = l.target;
+      let popText = n === "gold" ? "GOLDEN POTATOE" : null;
       return (
         (l.saved += t),
         (l.hitsThisRound += 1),
@@ -2308,10 +2400,12 @@ footer.game-bar .hint {
         (l.phase = "struck"),
         (l.phaseT = 0),
         (l.lastResult = "hit"),
-        (l.popup = { t: 0, value: t, x: l.target.x, y: l.target.y }),
+        (l.popup = { t: 0, value: t, x: l.target.x, y: l.target.y, text: popText }),
         { result: "hit", type: n, value: t }
       );
     }
+    l.saved = Math.max(0, l.saved - 1000);
+    l.popup = { t: 0, value: -1000, x: e.x, y: e.y, text: "MISS" };
     return { result: "miss" };
   }
   function Cl(l) {
@@ -2340,12 +2434,14 @@ footer.game-bar .hint {
     { startMusicOnce: nn } = Le,
     nl = Xl("trump-savings-tycoon"),
     Ce = {
-      title: "ASSET SEIZURE",
+      title: "TRUMP CORRUPTION TYCOON",
       lines: [
-        "HE'S MOVING THE MONEY",
-        "CATCH IT BEFORE THE PLANE",
-        "CLICK TO SWING THE NET",
-        "THREE ESCAPES AND HE'S GONE",
+        "CATCH HIS BRIBES WITH THE NET!",
+        "MISSED SWINGS COST YOU $1,000",
+        "OUT OF DOTS = ITEM ESCAPES",
+        "3 ESCAPES AND HE GETS AWAY",
+        "DON'T CATCH EAGLES OR ALIENS",
+        "RECOVER STOLEN PLANES & DOCS!"
       ],
       prompt: "CLICK TO START",
     },
@@ -2432,7 +2528,7 @@ footer.game-bar .hint {
       (H.burst(e.x, e.y, e.kind === "eagle" ? "moneybag" : "gold", 1.1),
         C({ freq: 180, endFreq: 110, duration: 0.1, type: "sine", gain: 0.03 }));
     ((h.bonusExpired.length = 0),
-      h.bonusHit && ((F = { t: 0, x: h.bonusHit.x, y: h.bonusHit.y }), (h.bonusHit = null)),
+      h.bonusHit && ((F = { t: 0, x: h.bonusHit.x, y: h.bonusHit.y, text: h.bonusHit.text, color: h.bonusHit.color, scale: h.bonusHit.scale }), (h.bonusHit = null)),
       F && ((F.t += l), F.t > 1.4 && (F = null)),
       h.impact &&
         (H.splat(h.impact.x, h.impact.y, h.impact.type),
@@ -2561,7 +2657,7 @@ footer.game-bar .hint {
     if (!F) return;
     let l = Math.min(1, F.t / 1.4);
     ((u.globalAlpha = Math.max(0, 1 - l)),
-      P(u, "BONUS!", x / 2, 54 - l * 12, "#ffe680", 2),
+      P(u, F.text || "BONUS!", x / 2, 54 - l * 12, F.color || "#ffe680", F.scale || 2),
       (u.globalAlpha = 1));
   }
   function gn() {
@@ -2573,10 +2669,13 @@ footer.game-bar .hint {
   }
   function hn() {
     let l = h.popup;
-    l &&
-      ((u.globalAlpha = Math.max(0, 1 - l.t / 1.1)),
-      P(u, `+${Y(l.value)}`, l.x + 8, l.y - 10 - l.t * 14, "#ffe680"),
-      (u.globalAlpha = 1));
+    if (l) {
+      u.globalAlpha = Math.max(0, 1 - l.t / 1.1);
+      let textStr = l.text ? l.text : (l.value >= 0 ? `+${Y(l.value)}` : `${Y(l.value)}`);
+      let col = l.value >= 0 ? "#ffe680" : "#e2564a";
+      P(u, textStr, l.x + 8, l.y - 10 - l.t * 14, col);
+      u.globalAlpha = 1;
+    }
   }
   function pn() {
     ((u.fillStyle = "rgba(8, 12, 20, 0.62)"),
@@ -2630,7 +2729,8 @@ footer.game-bar .hint {
     }
     pn();
     let e = D * D * 4;
-    if ((T(u, g.net, J.aim.x - 7, J.aim.y - 3 + e), D > 0.55)) {
+    let netRot = Math.sin(D * Math.PI) * -1.2;
+    if ((bl(u, g.net, J.aim.x - 7, J.aim.y - 3 + e, netRot), D > 0.55)) {
       let o = (1 - D) * 26;
       ((u.strokeStyle = `rgba(200, 236, 255, ${((D - 0.55) * 1.6).toFixed(3)})`),
         (u.lineWidth = 1),
@@ -2646,5 +2746,6 @@ footer.game-bar .hint {
 })();
 
 //# sourceURL=raw-html-custom-scripts-js-after
+
 </script>
 </body></html>
