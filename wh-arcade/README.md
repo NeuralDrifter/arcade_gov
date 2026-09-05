@@ -25,3 +25,4 @@ high scores are local only, so there is no server-side component missing.
 
 ## Rights
 17 U.S.C. 105 — no copyright subsists in U.S. Government works. Free to mirror,
+copy, and remix.
