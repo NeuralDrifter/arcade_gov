@@ -9,7 +9,6 @@ All five games verified playable offline with zero external dependencies.
   readable/    same 5, beautified, all pass `node --check`. No added comments.
   standalone/  5 self-contained playable HTML files (CSS + DOM + bundle)
   sprites/     ASCII pixel-maps recovered from each bundle
-  foia/        staff report (PDF+txt) and FOIA targeting memo
   asset-manifest.json
 
 ## Verification
@@ -26,4 +25,3 @@ high scores are local only, so there is no server-side component missing.
 
 ## Rights
 17 U.S.C. 105 — no copyright subsists in U.S. Government works. Free to mirror,
-fork, or modify. See foia/TARGETS.md for the contractor caveat.
