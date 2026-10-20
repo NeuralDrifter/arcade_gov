@@ -1760,7 +1760,7 @@ footer.game-bar .hint {
   function ce(l, e, n, t, o) {
     for (let r of It) {
       let k = (o + r.offset) % r.period;
-      if (k > r.cross) continue;
+      if (k > r.cross || gagHidden(r.sprite)) continue;
       let s = e[r.sprite];
       if (!s) continue;
       let a = t + 80,
@@ -1785,7 +1785,7 @@ footer.game-bar .hint {
   var Pt = [{ x: 206, y: 50, len: 48, phase: 0, speed: 0.75 }];
   function de(l, e, n, t, o) {
     let r = e.kite;
-    if (r)
+    if (r && !gagHidden("kite"))
       for (let k of Pt) {
         let s = Math.sin(o * k.speed + k.phase) * 7,
           a = Math.cos(o * k.speed * 1.3 + k.phase) * 3,
@@ -1810,7 +1810,7 @@ footer.game-bar .hint {
   }
   function fe(l, e, n, t, o) {
     let s = o % 38;
-    if (s > 13) return;
+    if (s > 13 || gagHidden("ufo")) return;
     let a = e.goose;
     if (!a) return;
     let i = -30 + (s / 13) * (t + 60),
@@ -1839,7 +1839,7 @@ footer.game-bar .hint {
   }
   function we(l, e, n, t, o, r) {
     let a = r % 52;
-    if (a > 9) return;
+    if (a > 9 || gagHidden("car")) return;
     let i = e.car;
     if (!i) return;
     let d = -40 + (a / 9) * (t + 80),
@@ -2393,35 +2393,62 @@ footer.game-bar .hint {
     l.bonusHit = { x: o.hx, y: o.hy, value: o.value, kind: o.kind, text: o.banner, color: o.color, scale: o.scale };
     return { result: "bonus", type: o.kind, value: o.value };
   }
+  function specialOnCooldown(l, s) {
+    return l[s.cooldownKey] !== void 0 && A - l[s.cooldownKey] <= s.cooldown;
+  }
+  // A recovered gag leaves the sky until its cooldown ends, so it can't be clicked as a miss.
+  function gagHidden(kind) {
+    let s = SPECIALS.find((o) => o.kind === kind);
+    return !!s && specialOnCooldown(h, s);
+  }
   function resolveClick(l, e) {
+    // The item in flight always wins, so a background gag can never steal a good catch.
+    if (l.phase === "flying" && l.grabs > 0 && Me(l.target, e)) {
+      l.grabs -= 1;
+      let { type: n, value: t } = l.target;
+      let popText = n === "gold" ? "GOLDEN POTATOE" : null;
+      return (
+        (l.saved += t),
+        (l.hitsThisRound += 1),
+        (l.target.phase = "struck"),
+        (l.phase = "struck"),
+        (l.phaseT = 0),
+        (l.lastResult = "hit"),
+        (l.popup = { t: 0, value: t, x: l.target.x, y: l.target.y, text: popText }),
+        { result: "hit", type: n, value: t }
+      );
+    }
+    if (isPoolClick(e)) {
+      return (
+        (l.popup = { t: 0, value: 0, x: e.x, y: e.y, text: "MAGA - MAKE ALGAE GREAT AGAIN" }),
+        { result: "pool", value: 0 }
+      );
+    }
+    // Gags never cost a swing; the friendly ones hand you a fresh set of nets.
+    for (let s of SPECIALS) {
+      let p = s.period === null ? 0 : (A + s.offset) % s.period;
+      if (p > s.cross) continue;
+      if (specialOnCooldown(l, s)) continue;
+      let t = s.pos(p, s.cross);
+      if (!Me({ x: t.x + s.box.dx, y: t.y + s.box.dy, w: s.box.w, h: s.box.h, phase: "flying" }, e)) continue;
+      let r = grantBonus(l, {
+        grabs: !1,
+        cooldownKey: s.cooldownKey,
+        kind: s.kind,
+        value: s.value,
+        popup: s.popup,
+        banner: s.banner,
+        color: s.color,
+        scale: s.scale,
+        px: e.x,
+        py: e.y,
+        hx: e.x,
+        hy: e.y,
+      });
+      if (s.value >= 0 && l.phase === "flying") l.grabs = Se;
+      return r;
+    }
     if (l.grabs > 0) {
-      if (isPoolClick(e)) {
-        return (
-          (l.popup = { t: 0, value: 0, x: e.x, y: e.y, text: "MAGA - MAKE ALGAE GREAT AGAIN" }),
-          { result: "pool", value: 0 }
-        );
-      }
-      for (let s of SPECIALS) {
-        let p = s.period === null ? 0 : (A + s.offset) % s.period;
-        if (p > s.cross) continue;
-        if (l[s.cooldownKey] && A - l[s.cooldownKey] <= s.cooldown) continue;
-        let t = s.pos(p, s.cross);
-        if (!Me({ x: t.x + s.box.dx, y: t.y + s.box.dy, w: s.box.w, h: s.box.h, phase: "flying" }, e)) continue;
-        return grantBonus(l, {
-          grabs: !0,
-          cooldownKey: s.cooldownKey,
-          kind: s.kind,
-          value: s.value,
-          popup: s.popup,
-          banner: s.banner,
-          color: s.color,
-          scale: s.scale,
-          px: e.x,
-          py: e.y,
-          hx: e.x,
-          hy: e.y,
-        });
-      }
       for (let n = l.bonuses.length - 1; n >= 0; n -= 1) {
         let t = l.bonuses[n];
         if (Me({ ...t, phase: "flying" }, e)) {
@@ -2446,20 +2473,7 @@ footer.game-bar .hint {
       }
     }
     if (l.phase !== "flying" || l.grabs <= 0) return { result: "ignored" };
-    if (((l.grabs -= 1), Me(l.target, e))) {
-      let { type: n, value: t } = l.target;
-      let popText = n === "gold" ? "GOLDEN POTATOE" : null;
-      return (
-        (l.saved += t),
-        (l.hitsThisRound += 1),
-        (l.target.phase = "struck"),
-        (l.phase = "struck"),
-        (l.phaseT = 0),
-        (l.lastResult = "hit"),
-        (l.popup = { t: 0, value: t, x: l.target.x, y: l.target.y, text: popText }),
-        { result: "hit", type: n, value: t }
-      );
-    }
+    l.grabs -= 1;
     l.saved = Math.max(0, l.saved - 1000);
     l.popup = { t: 0, value: -1000, x: e.x, y: e.y, text: "MISS" };
     return { result: "miss" };
@@ -2488,13 +2502,13 @@ footer.game-bar .hint {
     tn = ql(),
     Le = jl({ music: tn }),
     { startMusicOnce: nn } = Le,
-    nl = Xl("trump-savings-tycoon"),
+    nl = Xl("trump-corruption-tycoon"),
     Ce = {
       title: "TRUMP CORRUPTION TYCOON",
       lines: [
         "CATCH HIS BRIBES WITH THE NET!",
         "MISSED SWINGS COST YOU $1,000",
-        "OUT OF DOTS = ITEM ESCAPES",
+        "OUT OF NETS = IT GETS AWAY",
         "3 ESCAPES AND HE GETS AWAY",
         "DON'T CATCH EAGLES OR ALIENS",
         "RECOVER STOLEN PLANES & DOCS!"
@@ -2541,6 +2555,7 @@ footer.game-bar .hint {
       C({ freq: 262, duration: 0.6, type: "triangle", gain: 0.03 }));
   }
   document.addEventListener("keydown", (l) => {
+    l.key === " " && l.preventDefault();
     ((l.key === "m" || l.key === "M") && Le.toggle(),
       !(l.key === " " && Oe()) &&
         ((l.key === "r" || l.key === "R") &&
@@ -2548,10 +2563,12 @@ footer.game-bar .hint {
         l.key === " " && h.phase === "roundOver" && Cl(h)));
   });
   Il.addEventListener("pointerdown", () => {
-    (nn(),
-      !Oe() &&
-        (h.phase === "roundOver" && Cl(h),
-        h.phase === "gameOver" && ((h = hl()), H.clear(), (rl = 0))));
+    nn();
+    // A click that starts, continues or restarts the game is used up by that menu,
+    // so it must not also land as a net swing on whatever is behind the text.
+    let menuClick = Oe() || h.phase === "roundOver" || h.phase === "gameOver";
+    h.phase === "roundOver" ? Cl(h) : h.phase === "gameOver" && ((h = hl()), H.clear(), (rl = 0));
+    menuClick && J.takeGrabs();
   });
   function an(l) {
     if (ol) {
@@ -2786,10 +2803,7 @@ footer.game-bar .hint {
             ? `+${Y(h.cleanRound)} bonus \u2014 click to continue`
             : "click or space to continue",
         ));
-    else if (h.phase === "gameOver") {
-      let o = h.misses >= gl ? "HE'S GONE" : "TIME'S UP";
-      Tl(u, x, o, `${Y(h.saved)} saved \u2014 click to play again`);
-    }
+    else if (h.phase === "gameOver") Tl(u, x, "HE'S GONE", `${Y(h.saved)} saved \u2014 click to play again`);
     pn();
     let e = D * D * 4;
     let netRot = Math.sin(D * Math.PI) * -1.2;
