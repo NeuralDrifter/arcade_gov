@@ -42,6 +42,16 @@ Snake-style warrant service: round up the whole administration along the line â€
 
 Keep the bill in the air while flying through monuments.
 
+### The Cost of Trump (mod of Escape From Socialism)
+
+[Play the standalone game](anti-fascist%20games/standalone/socialism.html). Open the HTML file in a browser; no server or installation is needed.
+
+All **23 matching pairs** mirror the original game's topics, pictures and three level groupings: **Your budget**, **Your future**, and **The bigger picture**. Every reveal shows the original CEA claim word for word, then answers it with a number from his actual record on the same topic.
+
+The CEA scored the worst case for a "socialist agenda" that was never enacted. This mod plays by the same rules for policies that were: the top of each range, the longest horizon a source models, the peak year, and the hardest-hit households. Import taxes up 234%, $6.6 trillion wiped off stocks in two days, up to 16 million more uninsured, GDP 4.6% smaller by 2054. The framing is as harsh as theirs, but every number is real and links to its source (Tax Foundation, Yale Budget Lab, Penn Wharton, CBO via KFF, Energy Innovation, E2 and others). The receipts menu explains the method and flags the overlapping estimates that shouldn't be added together. Progress saves locally under a separate key, and the original game remains in `wh-arcade/`.
+
+Run the remix checks with `node --test "anti-fascist games/tests/socialism.test.cjs"`.
+
 ### Supply Line
 
 Food-safety conveyor satire: bare food rides, treated food comes off. You decide what stays on the line â€” let it ride, or knock it off.
