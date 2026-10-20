@@ -1,6 +1,7 @@
 (() => {
-  let nextPieceId = 1, uPenalty = null, pendingLinkedDrop = false;
+  let nextPieceId = 1;
   const PALETTE = ["#e63946", "#f5f5f5", "#3a7bd5"];
+  const HANDCUFF = "handcuff";
   function bt(h, t = 0) {
     try {
       let s = window.localStorage.getItem(h);
@@ -151,7 +152,7 @@
       K =
         typeof window.matchMedia == "function" &&
         window.matchMedia("(hover: none) and (pointer: coarse)").matches,
-      G = Pt("build-the-wall");
+      G = Pt("stop-the-insurrection");
     function ot() {
       ((L = Array.from({ length: a }, () => Array(m).fill(null))),
         (T = 0),
@@ -168,13 +169,13 @@
         (b = 0),
         (D = 0),
         (U = 0),
-          u = Y(), uPenalty = null, pendingLinkedDrop = false);
+          (u = Y()));
     }
     function Y() {
       let e = lt[Math.floor(Math.random() * lt.length)],
         l = et[e].map((o) => [...o]);
       let colors = l.map(row => row.map(cell => cell ? PALETTE[Math.floor(Math.random()*PALETTE.length)] : null));
-      return { type: e, shape: l, colors: colors, x: Math.floor((m - l[0].length) / 2), y: 0, pieceId: nextPieceId++, canRotate: true };
+      return { type: e, shape: l, colors: colors, x: Math.floor((m - l[0].length) / 2), y: 0, pieceId: nextPieceId++ };
     }
     function At(e) {
       let l = e.length,
@@ -201,13 +202,13 @@
         let count = 0, color = null;
         for (let c = 0; c < m; c++) {
           let cell = board[r][c];
-          if (cell && cell.color && cell.color === color && cell.color !== "handcuff") count++;
+          if (cell && cell.color && cell.color === color && cell.color !== HANDCUFF) count++;
           else {
             if (count >= 3) {
               for (let i = 0; i < count; i++) toRemove.add(`${r},${c - 1 - i}`);
               matchScore += count * 150;
             }
-            count = cell && cell.color !== "handcuff" ? 1 : 0;
+            count = cell && cell.color !== HANDCUFF ? 1 : 0;
             color = cell ? cell.color : null;
           }
         }
@@ -220,13 +221,13 @@
         let count = 0, color = null;
         for (let r = 0; r < a; r++) {
           let cell = board[r][c];
-          if (cell && cell.color && cell.color === color && cell.color !== "handcuff") count++;
+          if (cell && cell.color && cell.color === color && cell.color !== HANDCUFF) count++;
           else {
             if (count >= 3) {
               for (let i = 0; i < count; i++) toRemove.add(`${r - 1 - i},${c}`);
               matchScore += count * 150;
             }
-            count = cell && cell.color !== "handcuff" ? 1 : 0;
+            count = cell && cell.color !== HANDCUFF ? 1 : 0;
             color = cell ? cell.color : null;
           }
         }
@@ -239,7 +240,8 @@
     }
 
     function settleBoard() {
-      for (let iter = 0; iter < 64; iter++) {
+      // Every pass either drops a group one row or clears cells, so this always ends.
+      while (true) {
         let groups = [];
         let visited = new Set();
         for (let r = 0; r < a; r++) {
@@ -285,16 +287,29 @@
         
         let { toRemove, matchScore } = findMatches(L);
         if (toRemove.size > 0) {
+          // A match next to a handcuffed traitor breaks those cuffs loose too.
+          for (let pos of [...toRemove]) {
+            let [r, c] = pos.split(',').map(Number);
+            for (let [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+              let nr = r + dr, nc = c + dc;
+              if (nr >= 0 && nr < a && nc >= 0 && nc < m && L[nr][nc] && L[nr][nc].color === HANDCUFF) {
+                toRemove.add(`${nr},${nc}`);
+                matchScore += 100;
+              }
+            }
+          }
+          let clearedCols = new Set();
           for (let pos of toRemove) {
             let [r, c] = pos.split(',').map(Number);
             Dt(w + c * n + n/2, p + r * n + n/2);
             L[r][c] = null;
+            clearedCols.add(c);
           }
           T += matchScore;
           F(10, 300);
           R(400, 0.3, "sawtooth", 0.1);
           for (let enemy of I) {
-            if (enemy.state === "walking" && enemy.x >= w && enemy.x <= w + m * n) {
+            if (enemy.state === "walking" && clearedCols.has(Math.floor((enemy.x - w) / n))) {
               enemy.state = "dead";
               enemy.deathTime = 0;
               T += 50;
@@ -336,7 +351,7 @@
           let i = e.x + r,
             f = e.y + o;
           if (f >= 0 && f < a && i >= 0 && i < m) {
-            let cellColor = (f === a - 1 && arrestedCols.has(i)) ? "handcuff" : e.colors[o][r]; 
+            let cellColor = (f === a - 1 && arrestedCols.has(i)) ? HANDCUFF : e.colors[o][r];
             L[f][i] = { color: cellColor, pieceId: e.pieceId };
             Dt(w + i * n + n / 2, p + f * n + n / 2);
             if (f < l) l = f;
@@ -348,83 +363,33 @@
       T += 10;
       F(2.5, 90);
       R(140, 0.08, "square", 0.07);
-      
-      if (arguments[1] !== false) {
-          if (uPenalty) {
-              if (e === u) {
-                  u = uPenalty;
-                  uPenalty = null;
-                  u.canRotate = false;
-              } else {
-                  uPenalty = null;
-                  u.canRotate = false;
-              }
-          } else {
-              u = Y();
-              u.canRotate = true;
-              if (pendingLinkedDrop) {
-                  pendingLinkedDrop = false;
-                  uPenalty = Y();
-                  uPenalty.x = 0;
-                  uPenalty.canRotate = true;
-              }
-              if (k(u, 0, 0) || (uPenalty && k(uPenalty, 0, 0))) nt();
-          }
-      }
+
+      u = Y();
+      if (k(u, 0, 0)) nt();
     }
     function it() {
-      let moved = false;
       let e = 0;
-      while (true) {
-          let u_hit = k(u, 0, 1);
-          let up_hit = uPenalty ? k(uPenalty, 0, 1) : false;
-          
-          if (u_hit && up_hit) {
-              let p2 = uPenalty;
-              uPenalty = null;
-              rt(u, false);
-              rt(p2, true);
-              break;
-          } else if (u_hit) {
-              rt(u, true);
-              break;
-          } else if (up_hit) {
-              rt(uPenalty, true);
-              break;
-          } else {
-              u.y++;
-              if (uPenalty) uPenalty.y++;
-              e++;
-              moved = true;
-          }
+      while (!k(u, 0, 1)) {
+        u.y++;
+        e++;
       }
-      if (moved) {
-          T += e * 2;
-          R(90, 0.12, "sawtooth", 0.09);
+      if (e > 0) {
+        T += e * 2;
+        R(90, 0.12, "sawtooth", 0.09);
       }
+      rt(u);
     }
     function ft() {
-      if (u.canRotate === false) return;
       let e = At(u.shape),
         c_rot = At(u.colors),
         l = [0, -1, 1, -2, 2];
-      let p_e = uPenalty ? At(uPenalty.shape) : null;
-      let p_c_rot = uPenalty ? At(uPenalty.colors) : null;
-      
       for (let o of l) {
         if (!k(u, o, 0, e)) {
-          if (!uPenalty || !k(uPenalty, o, 0, p_e)) {
-            u.shape = e;
-            u.colors = c_rot;
-            u.x += o;
-            if (uPenalty) {
-              uPenalty.shape = p_e;
-              uPenalty.colors = p_c_rot;
-              uPenalty.x += o;
-            }
-            R(420, 0.04, "square", 0.05);
-            return;
-          }
+          u.shape = e;
+          u.colors = c_rot;
+          u.x += o;
+          R(420, 0.04, "square", 0.05);
+          return;
         }
       }
     }
@@ -480,6 +445,8 @@
                               dmg--;
                           }
                       }
+                      // Let whatever was standing on the eaten blocks fall and chain.
+                      settleBoard();
                     })(),
                   Gt(l.x, l.y - 14, l.type.color),
                   F(3.5, 120),
@@ -727,7 +694,8 @@
     }
     function $(e, l, o, r) {
         let c = n * 0.28;
-        t.fillStyle = o;
+        let cuffed = o === HANDCUFF;
+        t.fillStyle = cuffed ? "#8d96a3" : o;
         t.beginPath();
         t.moveTo(e + c, l);
         t.lineTo(e + n - c, l);
@@ -758,7 +726,19 @@
         t.closePath();
         t.stroke();
 
-        if (r) {
+        if (cuffed) {
+            // Two linked cuffs: the arrested traitor stays on the board until a match frees the space.
+            let cy = l + n / 2, rad = n * 0.17;
+            t.strokeStyle = "#1c2129";
+            t.lineWidth = 2.5;
+            t.beginPath();
+            t.arc(e + n * 0.32, cy, rad, 0, Math.PI * 2);
+            t.moveTo(e + n * 0.68 + rad, cy);
+            t.arc(e + n * 0.68, cy, rad, 0, Math.PI * 2);
+            t.moveTo(e + n * 0.32 + rad, cy);
+            t.lineTo(e + n * 0.68 - rad, cy);
+            t.stroke();
+        } else if (r) {
             t.fillStyle = "rgba(0, 0, 0, 0.4)";
             t.fillRect(e + 3, l + Math.floor(n / 2) - 1, n - 6, 2);
         }
@@ -800,16 +780,7 @@
     function Nt() {
       for (let e = 0; e < a; e++)
         for (let l = 0; l < m; l++) {
-          if (L[e][l]) {
-            let pid = L[e][l].pieceId;
-            let b = {
-              top: e > 0 && L[e-1][l] && L[e-1][l].pieceId === pid,
-              bottom: e < a-1 && L[e+1][l] && L[e+1][l].pieceId === pid,
-              left: l > 0 && L[e][l-1] && L[e][l-1].pieceId === pid,
-              right: l < m-1 && L[e][l+1] && L[e][l+1].pieceId === pid
-            };
-            $(w + l * n, p + e * n, L[e][l].color, !0, b);
-          }
+          if (L[e][l]) $(w + l * n, p + e * n, L[e][l].color, !0);
         }
     }
     function Ut() {
@@ -821,19 +792,16 @@
     }
     function qt() {
       t.shadowBlur = 8;
-      let pieces = uPenalty ? [u, uPenalty] : [u];
-      for (let pObj of pieces) {
-        for (let e = 0; e < pObj.shape.length; e++)
-          for (let l = 0; l < pObj.shape[e].length; l++) {
-            if (!pObj.shape[e][l]) continue;
-            let o = w + (pObj.x + l) * n,
-              r = p + (pObj.y + e) * n;
-            if (r >= p - n) {
-              t.shadowColor = pObj.colors[e][l];
-              $(o, r, pObj.colors[e][l], !1);
-            }
+      for (let e = 0; e < u.shape.length; e++)
+        for (let l = 0; l < u.shape[e].length; l++) {
+          if (!u.shape[e][l]) continue;
+          let o = w + (u.x + l) * n,
+            r = p + (u.y + e) * n;
+          if (r >= p - n) {
+            t.shadowColor = u.colors[e][l];
+            $(o, r, u.colors[e][l], !1);
           }
-      }
+        }
       t.shadowBlur = 0;
     }
     function dt(e, l) {
@@ -1005,15 +973,17 @@
           t.fillRect(i + 3, 38, 6, 2));
       }
       
-      let maxStr = 0;
+      let maxStr = 0, walking = 0;
       for (let enemy of I) {
-          if (enemy.state === "walking" && enemy.strength > maxStr) maxStr = enemy.strength;
+          if (enemy.state !== "walking") continue;
+          walking++;
+          if (enemy.type.strength > maxStr) maxStr = enemy.type.strength;
       }
       t.font = '10px "Press Start 2P"';
       t.fillStyle = "#ff006e";
       t.shadowColor = "#ff006e";
       t.shadowBlur = 8;
-      t.fillText("TRAITORS: " + I.length, 650, 24);
+      t.fillText("TRAITORS: " + walking, 650, 24);
       t.fillStyle = "#ffbe0b";
       t.shadowColor = "#ffbe0b";
       t.fillText("THREAT: LVL " + maxStr, 650, 42);
@@ -1065,7 +1035,7 @@
         (t.font = '14px "Press Start 2P"'),
         (t.fillStyle = "#ffbe0b"),
         (t.shadowColor = "#ffbe0b"),
-        t.fillText("\u2605 STOP THE INSURRECTION \u2605", o, 305),
+        t.fillText("\u2605 DEFEND THE CAPITOL \u2605", o, 305),
         (t.font = '10px "Press Start 2P"'),
         (t.fillStyle = "#ffffff"),
         (t.shadowColor = "#ffffff"),
@@ -1156,28 +1126,14 @@
     function X(e) {
       if (g !== "playing") return;
       if (k(u, e, 0)) return;
-      if (uPenalty && k(uPenalty, e, 0)) return;
       u.x += e;
-      if (uPenalty) uPenalty.x += e;
       R(220, 0.025, "square", 0.04);
     }
     function handleGravity() {
-      let u_hit = k(u, 0, 1);
-      let up_hit = uPenalty ? k(uPenalty, 0, 1) : false;
-      
-      if (u_hit && up_hit) {
-          let p2 = uPenalty;
-          uPenalty = null;
-          rt(u, false);
-          rt(p2, true);
-      } else if (u_hit) {
-          rt(u, true);
-      } else if (up_hit) {
-          rt(uPenalty, true);
-      } else {
-          u.y++;
-          if (uPenalty) uPenalty.y++;
-          T += 1;
+      if (k(u, 0, 1)) rt(u);
+      else {
+        u.y++;
+        T += 1;
       }
     }
     function St() {
@@ -1195,7 +1151,8 @@
         return;
       }
       if (g === "title" || g === "gameover") {
-        e.code === "Space" && (yt(), e.preventDefault());
+        // Ignore auto-repeat so a held slam key can't skip the game-over screen.
+        e.code === "Space" && (e.preventDefault(), e.repeat || yt());
         return;
       }
       if (g === "paused") {
