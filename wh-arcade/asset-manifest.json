@@ -597,5 +597,33 @@
    "https://www.whitehouse.gov/wp-content/uploads/2026/10/img2.png",
    "https://www.whitehouse.gov/wp-content/uploads/2026/10/img3.png"
   ]
+ },
+ "red-scare": {
+  "source_url": "https://www.whitehouse.gov/arcade/red-scare/",
+  "captured_on": "2026-10-27",
+  "published_on": "2026-10-23",
+  "assets": [
+   "https://www.whitehouse.gov/wp-content/themes/whitehouse/static-assets/arcade/redscare/script.js",
+   "https://www.whitehouse.gov/wp-content/themes/whitehouse/static-assets/arcade/redscare/style.css"
+  ],
+  "notes": "Three.js, models, textures, audio and fonts are embedded. Standalone contains only game DOM, CSS and JavaScript. No pixel-map sprites: this game uses 3D models.",
+  "files": {
+   "pages/red-scare.html": {
+    "bytes": 244972,
+    "sha256": "33f23457b1bd6b21096dbe7f56df54966c8752bc78074d8487dbe6b7808023eb"
+   },
+   "games/red-scare.js": {
+    "bytes": 8761195,
+    "sha256": "b760148c6a3dc9738d53c8234f0969898851cf6e37b186c40401a02347d940da"
+   },
+   "assets/red-scare/style.css": {
+    "bytes": 356201,
+    "sha256": "50c525764fe55174cfaefcdecb8deb800c94e1e896fc85210515b44aaed0fc7c"
+   },
+   "standalone/red-scare.html": {
+    "bytes": 9122255,
+    "sha256": "0091e8879524e3216904f2a6c067fee7b4e4e7995b022c3a89c307626b62d58f"
+   }
+  }
  }
 }

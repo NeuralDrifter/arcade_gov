@@ -5,6 +5,23 @@ Escape From Socialism (/arcade/socialism/, published 2026-10-14) added 2026-10-1
 along with a fresh capture of the arcade index that lists it.
 All six games verified playable offline with zero external dependencies.
 
+Red Scare: Midnight Run (/arcade/red-scare/, published 2026-10-23) added
+2026-10-27 as the seventh captured game. Open
+[standalone/red-scare.html](standalone/red-scare.html) directly in a browser.
+Its original page, JavaScript bundle and stylesheet are preserved in
+`pages/red-scare.html`, `games/red-scare.js` and `assets/red-scare/style.css`.
+`readable/red-scare.js` is the bundle formatted with Prettier 3.9.10.
+The standalone embeds the game's own DOM, CSS and JavaScript, including its
+embedded fonts, textures and 3D data, without the surrounding site scripts.
+It requires WebGL. Capture sizes and SHA-256 hashes are in `asset-manifest.json`.
+There is no pixel-map sprites entry because this game uses 3D models.
+
+Red Scare verification: both JavaScript copies pass `node --check`; archive
+integrity and game logic checks run with `node --test tests/red-scare.test.cjs`.
+Browser rendering and manual play remain unverified for this capture because
+no controllable browser was available during capture. The six-game browser
+verification below describes the earlier captures only.
+
 ## Layout
   pages/       7 HTML captures as served + index.schema.json (JSON-LD)
   games/       6 game bundles exactly as shipped (5 minified esbuild IIFE;

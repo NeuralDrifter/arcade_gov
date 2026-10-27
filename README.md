@@ -6,6 +6,12 @@ I'm not a game maker. But the bar the White House set is on the floor, and anyth
 
 ## wh-arcade/ — The Originals
 
+**Red Scare: Midnight Run** was captured on October 27, 2026 and added to the
+originals archive as the seventh game. [Open the offline copy](wh-arcade/standalone/red-scare.html)
+in a browser with WebGL enabled. The original page, bundle, stylesheet, formatted
+source and capture hashes are preserved under `wh-arcade/`.
+Archive and game logic checks pass; browser rendering remains unverified.
+
 Reverse-engineered and rebuilt copies of all six arcade.gov games (the sixth, Escape From Socialism, is a card-matching game that dresses up CEA talking points about "the socialist agenda" as facts you uncover), kept in their original state as documentation of what they shipped. See [wh-arcade/README.md](wh-arcade/README.md) for the capture details, verification notes, and rights (17 U.S.C. § 105 — no copyright in U.S. Government works, so it's free to mirror and mod).
 
 ## anti-fascist games/ — The Mods
