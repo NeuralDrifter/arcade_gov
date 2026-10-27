@@ -18,6 +18,21 @@ Reverse-engineered and rebuilt copies of all six arcade.gov games (the sixth, Es
 
 The same games with the message flipped into protest games.
 
+### Fascist Scare: Midnight Run (mod of Red Scare)
+
+[Play the standalone game](anti-fascist%20games/standalone/red-scare.html). Open the HTML file in a browser with WebGL enabled; no external assets or connections needed.
+
+The White House's 3D endless runner attacked "the collective" and featured Trump protector shields while evading caricatured socialist checkpoints. This anti-fascist remix reverses the surveillance state on the regime itself:
+
+- **Four modded districts**:
+  1. *ICE Raid Corridor*: Evade warrantless raids, deportation checkpoints, and civil asset forfeiture traps.
+  2. *Weaponized DOJ Foundry*: Slide beneath political indictments and dodge kangaroo court press machines.
+  3. *Billionaire Tax Shelter*: Jump insider utility wires and avoid bankrupt casino monuments.
+  4. *Mar-a-Lago Citadel*: Slide under executive overreach and dodge swinging golf clubs of retribution.
+- **Counter-propaganda shields**: Power up with *Constitutional First Amendment Shields* (`RIGHTS`) instead of "MAGA" shields to blast through authoritarian barricades.
+- **Score civil liberties**: Track your escape in *Liberty Points* while dodging ICE raiders and regime loyalists on your trail across 12,000 meters to freedom.
+- **Verification**: Run `node --test "anti-fascist games/tests/red-scare.test.cjs"`.
+
 ### Stop the Insurrection (mod of Build the Wall)
 
 Defend the Capitol from a wave of insurrectionists instead of building the wall.

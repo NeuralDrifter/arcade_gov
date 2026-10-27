@@ -1,0 +1,8 @@
+{
+  "name": "White House Arcade Archive & Remixes",
+  "description": "Complete offline archive of the White House arcade.gov games alongside playable anti-fascist protest remixes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
