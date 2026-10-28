@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# AI Studio artifacts & temporary storage
+.aistudio/
+
+# Agent & IDE caches
+.gemini/
+.claude/
+.vscode/
+.idea/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs & process files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment & local secrets
+.env
+.env.local
+.env.*.local
+
+# Temporary / duplicate PDF downloads
+The-Real-Cost-of-Fascism-in-America-[0-9]*.pdf

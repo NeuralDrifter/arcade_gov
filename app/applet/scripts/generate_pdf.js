@@ -1,6 +1,11 @@
 import PDFDocument from 'pdfkit';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const projectRoot = path.resolve(__dirname, '../../../');
 
 function buildFascismPDF(outputPath) {
   return new Promise((resolve, reject) => {
@@ -252,9 +257,9 @@ function buildFascismPDF(outputPath) {
 }
 
 const targets = [
-  '/app/applet/public/assets/aistudio/The-Real-Cost-of-Fascism-in-America_6b79fbf7.pdf',
-  '/app/applet/anti-fascist games/assets/The-Real-Cost-of-Fascism-in-America.pdf',
-  '/app/applet/wh-arcade/assets/socialism/The-Real-Cost-of-Fascism-in-America.pdf'
+  path.join(projectRoot, 'public', 'assets', 'aistudio', 'The-Real-Cost-of-Fascism-in-America_6b79fbf7.pdf'),
+  path.join(projectRoot, 'anti-fascist games', 'assets', 'The-Real-Cost-of-Fascism-in-America.pdf'),
+  path.join(projectRoot, 'wh-arcade', 'assets', 'socialism', 'The-Real-Cost-of-Fascism-in-America.pdf')
 ];
 
 async function main() {

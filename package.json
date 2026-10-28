@@ -7,7 +7,7 @@
     "start": "node server.js",
     "build": "node --check server.js",
     "lint": "node --check server.js",
-    "test": "node --test \"anti-fascist games/tests/socialism.test.cjs\" \"anti-fascist games/tests/red-scare.test.cjs\" \"wh-arcade/tests/red-scare.test.cjs\""
+    "test": "node --test \"tests/server.test.js\" \"anti-fascist games/tests/socialism.test.cjs\" \"anti-fascist games/tests/red-scare.test.cjs\" \"wh-arcade/tests/red-scare.test.cjs\""
   },
   "dependencies": {
     "express": "^5.3.0",
