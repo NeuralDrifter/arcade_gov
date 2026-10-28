@@ -82,8 +82,9 @@ app.get('/arcade', (req, res) => {
   res.redirect('/');
 });
 
-// Serve static files from root
+// Serve static files from root and public directory
 app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`White House Arcade server listening on http://0.0.0.0:${PORT}`);
