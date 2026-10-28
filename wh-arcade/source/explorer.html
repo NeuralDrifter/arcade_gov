@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>White House Arcade — Universal Source Code Explorer</title>
+  <style>
+    :root {
+      --bg: #0b0f24;
+      --card-bg: #13193a;
+      --text: #e2e8f0;
+      --dim: #94a3b8;
+      --cyan: #06ffa5;
+      --amber: #ffbe0b;
+      --red: #ff2d55;
+      --blue: #2de2ff;
+      --purple: #a855f7;
+      --code-bg: #070a18;
+      --border: rgba(45, 226, 255, 0.25);
+      --font-pixel: "Press Start 2P", monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      max-width: 100vw;
+      overflow-x: hidden;
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+    }
+
+    #arcade-back-nav {
+      position: relative !important;
+      top: auto !important;
+      left: auto !important;
+      margin-bottom: 1rem !important;
+      z-index: 100 !important;
+      display: inline-block !important;
+    }
+
+    #arcade-back-nav a {
+      font-family: var(--font-pixel), sans-serif !important;
+      font-size: 10px !important;
+      padding: 8px 12px !important;
+      background: rgba(5,6,15,0.9) !important;
+      color: #06ffa5 !important;
+      border: 1px solid #06ffa5 !important;
+      border-radius: 4px !important;
+      text-decoration: none !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      box-shadow: 0 0 12px rgba(6,255,165,0.4) !important;
+      max-width: 100% !important;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 1.25rem 1rem 3rem;
+    }
+
+    @media (min-width: 640px) {
+      .container {
+        padding: 2rem 1.5rem 4rem;
+      }
+    }
+
+    header {
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.25rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 1rem;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .header-left {
+      flex: 1 1 100%;
+      min-width: 0;
+      width: 100%;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.35rem 0.75rem;
+      background: rgba(255, 190, 11, 0.15);
+      color: var(--amber);
+      border: 1px solid var(--amber);
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+      max-width: 100%;
+      white-space: normal;
+      word-break: break-word;
+    }
+
+    .badge--mod {
+      background: rgba(6, 255, 165, 0.15);
+      color: var(--cyan);
+      border-color: var(--cyan);
+    }
+
+    h1 {
+      margin: 0 0 0.5rem;
+      font-size: clamp(1.3rem, 4.5vw, 2.4rem);
+      color: #fff;
+      letter-spacing: -0.02em;
+      line-height: 1.25;
+      word-break: break-word;
+      overflow-wrap: break-word;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--dim);
+      font-size: 0.92rem;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    .controls-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+
+    @media (min-width: 768px) {
+      .controls-bar {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        padding: 1.25rem;
+      }
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+
+    .control-group--game {
+      flex: 1 1 320px;
+    }
+
+    .control-group--version {
+      flex: 0 0 auto;
+    }
+
+    .control-group label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--dim);
+      font-weight: 700;
+    }
+
+    select {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      padding: 0.6rem 2.2rem 0.6rem 0.8rem;
+      background: var(--code-bg);
+      color: #fff;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 0.9rem;
+      outline: none;
+      box-sizing: border-box;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      overflow: hidden;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2306ffa5%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.7rem top 50%;
+      background-size: 0.6rem auto;
+    }
+
+    select:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 8px rgba(6, 255, 165, 0.3);
+    }
+
+    .mode-switch {
+      display: flex;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      width: 100%;
+      max-width: 100%;
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 0.6rem 0.6rem;
+      background: var(--code-bg);
+      color: var(--dim);
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-align: center;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .mode-btn.active[data-mode="orig"] {
+      background: rgba(255, 190, 11, 0.25);
+      color: var(--amber);
+    }
+
+    .mode-btn.active[data-mode="mod"] {
+      background: rgba(6, 255, 165, 0.25);
+      color: var(--cyan);
+    }
+
+    .btn-play {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1.1rem;
+      background: var(--cyan);
+      color: #050714;
+      font-weight: 700;
+      font-size: 0.88rem;
+      text-decoration: none;
+      border-radius: 4px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      width: 100%;
+      text-align: center;
+      box-sizing: border-box;
+    }
+
+    @media (min-width: 768px) {
+      .btn-play {
+        width: auto;
+        margin-left: auto;
+      }
+    }
+
+    .btn-play:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 12px rgba(6, 255, 165, 0.5);
+    }
+
+    .explorer-tabs {
+      display: flex;
+      gap: 0.4rem;
+      margin-bottom: 0;
+      border-bottom: 2px solid rgba(255,255,255,0.1);
+      overflow-x: auto;
+      white-space: nowrap;
+      -webkit-overflow-scrolling: touch;
+      width: 100%;
+      max-width: 100%;
+      padding-bottom: 4px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--cyan) var(--card-bg);
+    }
+
+    .explorer-tabs::-webkit-scrollbar {
+      height: 5px;
+    }
+
+    .explorer-tabs::-webkit-scrollbar-track {
+      background: rgba(255,255,255,0.05);
+      border-radius: 3px;
+    }
+
+    .explorer-tabs::-webkit-scrollbar-thumb {
+      background: var(--cyan);
+      border-radius: 3px;
+    }
+
+    .tab-btn {
+      padding: 0.6rem 0.9rem;
+      background: var(--card-bg);
+      color: var(--dim);
+      border: 1px solid var(--border);
+      border-bottom: none;
+      border-radius: 6px 6px 0 0;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.8rem;
+      transition: color 0.2s, background 0.2s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .tab-btn.active {
+      background: var(--code-bg);
+      color: var(--cyan);
+      border-color: var(--cyan);
+    }
+
+    .code-wrapper {
+      position: relative;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      padding: 1rem;
+      max-height: 60vh;
+      min-height: 250px;
+      overflow: auto;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+      scrollbar-width: thin;
+      scrollbar-color: var(--blue) var(--code-bg);
+    }
+
+    @media (min-width: 640px) {
+      .code-wrapper {
+        padding: 1.25rem;
+      }
+    }
+
+    .code-wrapper::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    .code-wrapper::-webkit-scrollbar-track {
+      background: var(--code-bg);
+    }
+
+    .code-wrapper::-webkit-scrollbar-thumb {
+      background: var(--blue);
+      border-radius: 3px;
+    }
+
+    pre {
+      margin: 0;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 0.8rem;
+      line-height: 1.5;
+      color: #f1f5f9;
+      white-space: pre-wrap;
+      word-break: break-all;
+      overflow-wrap: anywhere;
+    }
+
+    .meta-box {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+      width: 100%;
+      max-width: 100%;
+    }
+
+    .meta-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.85rem 1rem;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+
+    .meta-card h3 {
+      margin: 0 0 0.25rem;
+      font-size: 0.72rem;
+      color: var(--blue);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .meta-card p {
+      margin: 0;
+      font-size: 0.85rem;
+      font-family: monospace;
+      color: #e2e8f0;
+      word-break: break-all;
+      overflow-wrap: anywhere;
+    }
+
+    .disclaimer-box {
+      margin-top: 1rem;
+      margin-bottom: 1rem;
+      padding: 0.85rem 1rem;
+      background: rgba(255, 190, 11, 0.08);
+      border: 1px solid rgba(255, 190, 11, 0.3);
+      border-radius: 6px;
+      font-size: 0.85rem;
+      color: #cbd5e1;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-left">
+        <span class="badge" id="source-badge">wh-arcade // Original Capture</span>
+        <h1 id="game-title">Source Code Explorer</h1>
+        <p class="subtitle" id="game-subtitle">Interactive source code, sprite matrices, and test suites</p>
+      </div>
+    </header>
+
+    <div class="controls-bar">
+      <div class="control-group control-group--game">
+        <label for="select-game">Select Game</label>
+        <select id="select-game" onchange="onGameChange()">
+          <option value="red-scare">Red Scare: Midnight Run (3D WebGL)</option>
+          <option value="build-the-wall">Build the Wall (Block Stacking / Pentomino)</option>
+          <option value="trump-savings-tycoon">Trump Savings / Corruption Tycoon</option>
+          <option value="rio-run">Rio Run / Perp Walk (Snake Roundup)</option>
+          <option value="socialism">Escape from Socialism / The Cost of Trump</option>
+          <option value="flappy-bill">Flappy Bill (National Mall Flyer)</option>
+          <option value="supply-line">Supply Line (Conveyor Satire)</option>
+        </select>
+      </div>
+
+      <div class="control-group control-group--version">
+        <label>Version Archive</label>
+        <div class="mode-switch">
+          <button class="mode-btn active" data-mode="orig" onclick="setMode('orig')">Original Capture</button>
+          <button class="mode-btn" data-mode="mod" onclick="setMode('mod')">Anti-Fascist Remix</button>
+        </div>
+      </div>
+
+      <a class="btn-play" id="btn-launch-game" href="#" target="_top">
+        <span>Play Standalone Game &rarr;</span>
+      </a>
+    </div>
+
+    <div id="legal-warning-box" class="disclaimer-box" style="display:none;">
+      <strong>Note on Build the Wall Original:</strong> Direct front-end gameplay for the White House block-stacking capture is disconnected due to commercial Tetris copyright concerns. You can inspect the source code here, or play the non-infringing pentomino remix <em>Stop the Insurrection</em>.
+    </div>
+
+    <div class="explorer-tabs" id="tab-bar">
+      <!-- Tabs rendered dynamically -->
+    </div>
+
+    <div class="code-wrapper">
+      <pre id="code-display">Loading source file...</pre>
+    </div>
+
+    <div class="meta-box">
+      <div class="meta-card">
+        <h3>Current File Path</h3>
+        <p id="meta-file-path">-</p>
+      </div>
+      <div class="meta-card">
+        <h3>File Size</h3>
+        <p id="meta-file-size">-</p>
+      </div>
+      <div class="meta-card">
+        <h3>Statutory / Legal Status</h3>
+        <p id="meta-legal-status">17 U.S.C. &sect; 105 Public Domain</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const gameTitles = {
+      'red-scare': { orig: 'Red Scare: Midnight Run (Original Capture)', mod: 'Fascist Scare: Midnight Run (Anti-Fascist Remix)' },
+      'build-the-wall': { orig: 'Build the Wall (Original Capture)', mod: 'Stop the Insurrection (Anti-Fascist Remix)' },
+      'trump-savings-tycoon': { orig: 'Trump Savings Tycoon (Original Capture)', mod: 'Trump Corruption Tycoon (Anti-Fascist Remix)' },
+      'rio-run': { orig: 'Rio Run (Original Capture)', mod: 'Perp Walk (Anti-Fascist Remix)' },
+      'socialism': { orig: 'Escape from Socialism (Original Capture)', mod: 'The Cost of Trump (Anti-Fascist Remix)' },
+      'flappy-bill': { orig: 'Flappy Bill (Original Capture)', mod: 'Flappy Bill: National Mall Edition (Remix)' },
+      'supply-line': { orig: 'Supply Line (Original Capture)', mod: 'Supply Line: Conveyor Satire (Remix)' }
+    };
+
+    let currentGame = 'red-scare';
+    let currentMode = 'orig';
+    let currentFileKey = 'readable';
+
+    const cache = {};
+
+    function setupBackNav() {
+      const nav = document.getElementById('arcade-back-nav');
+      if (nav) {
+        const container = document.querySelector('.container');
+        if (container && nav.parentNode !== container) {
+          container.prepend(nav);
+        }
+      }
+    }
+
+    function parseParams() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const g = urlParams.get('game');
+      const m = urlParams.get('mode');
+      if (g && gameTitles[g]) currentGame = g;
+      if (m === 'mod' || m === 'orig') currentMode = m;
+      document.getElementById('select-game').value = currentGame;
+      updateModeButtons();
+    }
+
+    function setMode(m) {
+      currentMode = m;
+      updateModeButtons();
+      renderTabs();
+      loadCurrentFile();
+      updateHeader();
+    }
+
+    function onGameChange() {
+      currentGame = document.getElementById('select-game').value;
+      renderTabs();
+      loadCurrentFile();
+      updateHeader();
+    }
+
+    function updateModeButtons() {
+      document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === currentMode);
+      });
+    }
+
+    function updateHeader() {
+      const titles = gameTitles[currentGame] || { orig: currentGame, mod: currentGame };
+      document.getElementById('game-title').textContent = titles[currentMode];
+      
+      const badge = document.getElementById('source-badge');
+      badge.textContent = currentMode === 'orig' ? 'wh-arcade // Original Capture' : 'anti-fascist // Counter-Propaganda Remix';
+      badge.className = 'badge ' + (currentMode === 'mod' ? 'badge--mod' : '');
+
+      const playBtn = document.getElementById('btn-launch-game');
+      const warningBox = document.getElementById('legal-warning-box');
+
+      if (currentGame === 'build-the-wall' && currentMode === 'orig') {
+        playBtn.style.display = 'none';
+        warningBox.style.display = 'block';
+      } else {
+        playBtn.style.display = 'inline-flex';
+        warningBox.style.display = 'none';
+        const pathPrefix = currentMode === 'orig' ? '/wh-arcade/standalone/' : '/anti-fascist%20games/standalone/';
+        playBtn.href = pathPrefix + currentGame + '.html';
+      }
+
+      // Update URL query without reload
+      const newUrl = window.location.pathname + '?game=' + currentGame + '&mode=' + currentMode;
+      window.history.replaceState({}, '', newUrl);
+    }
+
+    function getTabsForGame() {
+      const tabs = [
+        { key: 'readable', label: 'readable/' + currentGame + '.js' },
+        { key: 'games', label: 'games/' + currentGame + '.js' },
+        { key: 'standalone', label: 'standalone/' + currentGame + '.html' }
+      ];
+
+      if (['build-the-wall', 'flappy-bill', 'rio-run', 'supply-line', 'trump-savings-tycoon'].includes(currentGame)) {
+        tabs.push({ key: 'sprite', label: 'sprites/' + currentGame + '.txt' });
+      }
+
+      if (currentMode === 'mod' && ['socialism', 'red-scare'].includes(currentGame)) {
+        tabs.push({ key: 'test', label: 'tests/' + currentGame + '.test.cjs' });
+      }
+
+      tabs.push({ key: 'manifest', label: 'asset-manifest.json' });
+      return tabs;
+    }
+
+    function renderTabs() {
+      const tabs = getTabsForGame();
+      const tabBar = document.getElementById('tab-bar');
+      tabBar.innerHTML = '';
+
+      if (!tabs.some(t => t.key === currentFileKey)) {
+        currentFileKey = 'readable';
+      }
+
+      tabs.forEach(t => {
+        const btn = document.createElement('button');
+        btn.className = 'tab-btn' + (t.key === currentFileKey ? ' active' : '');
+        btn.textContent = t.label;
+        btn.onclick = () => {
+          currentFileKey = t.key;
+          renderTabs();
+          loadCurrentFile();
+        };
+        tabBar.appendChild(btn);
+      });
+    }
+
+    function getFilePath(key) {
+      if (key === 'manifest') return '/wh-arcade/asset-manifest.json';
+      const folder = currentMode === 'orig' ? 'wh-arcade' : 'anti-fascist games';
+      
+      if (key === 'readable') return '/' + folder + '/readable/' + currentGame + '.js';
+      if (key === 'games') return '/' + folder + '/games/' + currentGame + '.js';
+      if (key === 'standalone') return '/' + folder + '/standalone/' + currentGame + '.html';
+      if (key === 'sprite') return '/wh-arcade/sprites/' + currentGame + '.txt';
+      if (key === 'test') return '/' + folder + '/tests/' + currentGame + '.test.cjs';
+      return '/' + folder + '/readable/' + currentGame + '.js';
+    }
+
+    async function loadCurrentFile() {
+      const path = getFilePath(currentFileKey);
+      document.getElementById('meta-file-path').textContent = path;
+
+      if (cache[path]) {
+        displayCode(cache[path]);
+        return;
+      }
+
+      try {
+        const res = await fetch(path);
+        const text = await res.text();
+        cache[path] = text;
+        displayCode(text);
+      } catch (err) {
+        displayCode('Error loading file: ' + err.message);
+      }
+    }
+
+    function displayCode(text) {
+      document.getElementById('code-display').textContent = text;
+      const bytes = new Blob([text]).size;
+      const sizeStr = bytes > 1024 * 1024 ? (bytes / (1024 * 1024)).toFixed(2) + ' MB' : (bytes / 1024).toFixed(1) + ' KB';
+      document.getElementById('meta-file-size').textContent = sizeStr + ' (' + bytes.toLocaleString() + ' bytes)';
+      document.getElementById('meta-legal-status').textContent = currentMode === 'orig' ? '17 U.S.C. § 105 Public Domain' : 'Anti-Fascist Counter-Propaganda Remix';
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      setupBackNav();
+      parseParams();
+      renderTabs();
+      updateHeader();
+      loadCurrentFile();
+    });
+
+    // In case DOMContentLoaded already fired before script execution:
+    if (document.readyState === 'interactive' || document.readyState === 'complete') {
+      setupBackNav();
+      parseParams();
+      renderTabs();
+      updateHeader();
+      loadCurrentFile();
+    }
+  </script>
+</body>
+</html>

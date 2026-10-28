@@ -39,6 +39,18 @@ app.get('/wh-arcade/standalone/:file', (req, res, next) => {
   next();
 });
 
+app.get('/wh-arcade/source/:file', (req, res, next) => {
+  const file = req.params.file;
+  let filePath = path.join(__dirname, 'wh-arcade', 'source', file);
+  if (!fs.existsSync(filePath)) {
+    filePath = path.join(__dirname, 'wh-arcade', 'source', 'explorer.html');
+  }
+  if (filePath.endsWith('.html')) {
+    return serveHtmlWithBackBar(filePath, res, next);
+  }
+  next();
+});
+
 const handleAntiFascistStandalone = (req, res, next) => {
   const file = decodeURIComponent(req.params.file);
   const filePath = path.join(__dirname, 'anti-fascist games', 'standalone', file);

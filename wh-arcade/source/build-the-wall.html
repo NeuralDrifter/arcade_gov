@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Build the Wall — Source Code Explorer &amp; Legal Preservation</title>
+  <style>
+    :root {
+      --bg: #0b0f24;
+      --card-bg: #13193a;
+      --text: #e2e8f0;
+      --dim: #94a3b8;
+      --cyan: #06ffa5;
+      --amber: #ffbe0b;
+      --red: #ff2d55;
+      --blue: #2de2ff;
+      --code-bg: #070a18;
+      --border: rgba(45, 226, 255, 0.25);
+      --font-pixel: "Press Start 2P", monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+    }
+
+    header {
+      margin-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.35rem 0.75rem;
+      background: rgba(255, 190, 11, 0.15);
+      color: var(--amber);
+      border: 1px solid var(--amber);
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      margin: 0 0 0.5rem;
+      font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+      color: #fff;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--dim);
+      font-size: 1.1rem;
+    }
+
+    .legal-notice {
+      background: rgba(255, 45, 85, 0.08);
+      border: 1px solid rgba(255, 45, 85, 0.4);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .legal-notice h2 {
+      margin: 0 0 0.75rem;
+      font-size: 1.2rem;
+      color: var(--red);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .legal-notice p {
+      margin: 0 0 1rem;
+      font-size: 0.98rem;
+      color: #cbd5e1;
+    }
+
+    .cta-banner {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      background: rgba(6, 255, 165, 0.08);
+      border: 1px solid rgba(6, 255, 165, 0.35);
+      border-radius: 6px;
+      padding: 1rem 1.25rem;
+    }
+
+    .cta-banner span {
+      font-weight: 600;
+      color: var(--cyan);
+    }
+
+    .btn-remix {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1.2rem;
+      background: var(--cyan);
+      color: #050714;
+      font-weight: 700;
+      text-decoration: none;
+      border-radius: 4px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-remix:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 12px rgba(6, 255, 165, 0.5);
+    }
+
+    .explorer-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0;
+      border-bottom: 2px solid rgba(255,255,255,0.1);
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      padding: 0.75rem 1.25rem;
+      background: var(--card-bg);
+      color: var(--dim);
+      border: 1px solid var(--border);
+      border-bottom: none;
+      border-radius: 6px 6px 0 0;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: color 0.2s, background 0.2s;
+    }
+
+    .tab-btn.active {
+      background: var(--code-bg);
+      color: var(--cyan);
+      border-color: var(--cyan);
+    }
+
+    .code-wrapper {
+      position: relative;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      padding: 1.5rem;
+      max-height: 650px;
+      overflow: auto;
+    }
+
+    pre {
+      margin: 0;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 0.88rem;
+      color: #f1f5f9;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .meta-box {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    .meta-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem 1.25rem;
+    }
+
+    .meta-card h3 {
+      margin: 0 0 0.35rem;
+      font-size: 0.85rem;
+      color: var(--blue);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .meta-card p {
+      margin: 0;
+      font-size: 0.95rem;
+      font-family: monospace;
+      color: #e2e8f0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <span class="badge">Legal &amp; Archival Inspection</span>
+      <h1>Build the Wall — Source Code Explorer</h1>
+      <p class="subtitle">Preserved White House Capture (arcade.gov) &bull; 17 U.S.C. &sect; 105 Government Work</p>
+    </header>
+
+    <div class="legal-notice">
+      <h2>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Front-End Gameplay Disconnected &bull; Copyright Risk Precaution
+      </h2>
+      <p>
+        Direct interactive gameplay for the original White House <em>Build the Wall</em> capture has been intentionally disconnected from our front-end application to prevent commercial copyright conflicts surrounding Tetris-style block-stacking mechanics.
+      </p>
+      <p>
+        Under <strong>17 U.S.C. &sect; 105</strong>, works created by the U.S. Federal Government are ineligible for domestic copyright protection and remain preserved here in full source form for research, inspection, audit, and historical documentation.
+      </p>
+
+      <div class="cta-banner">
+        <span>Looking to play the non-infringing anti-fascist protest game instead?</span>
+        <a class="btn-remix" href="/anti-fascist%20games/standalone/build-the-wall.html">
+          Play "Stop the Insurrection" Remix &rarr;
+        </a>
+      </div>
+    </div>
+
+    <div class="explorer-tabs">
+      <button class="tab-btn active" onclick="showTab('js')">build-the-wall.js (Readable Source)</button>
+      <button class="tab-btn" onclick="showTab('sprite')">build-the-wall.txt (Sprite Matrix)</button>
+      <button class="tab-btn" onclick="showTab('html')">build-the-wall.html (Standalone)</button>
+      <button class="tab-btn" onclick="showTab('manifest')">SHA-256 Manifest</button>
+    </div>
+
+    <div class="code-wrapper">
+      <pre id="code-display">Loading source file...</pre>
+    </div>
+
+    <div class="meta-box">
+      <div class="meta-card">
+        <h3>Primary Capture File</h3>
+        <p>wh-arcade/readable/build-the-wall.js</p>
+      </div>
+      <div class="meta-card">
+        <h3>SHA-256 Integrity Hash</h3>
+        <p>d21f822f7ae8e51b34a62df860ef8f8a...</p>
+      </div>
+      <div class="meta-card">
+        <h3>Statutory Status</h3>
+        <p>17 U.S.C. &sect; 105 Public Domain</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const files = {
+      js: '/wh-arcade/readable/build-the-wall.js',
+      sprite: '/wh-arcade/sprites/build-the-wall.txt',
+      html: '/wh-arcade/standalone/build-the-wall.html',
+      manifest: '/wh-arcade/asset-manifest.json'
+    };
+
+    const cache = {};
+
+    async function loadFile(key) {
+      if (cache[key]) return cache[key];
+      try {
+        const res = await fetch(files[key]);
+        const text = await res.text();
+        cache[key] = text;
+        return text;
+      } catch (err) {
+        return "Error loading file: " + err.message;
+      }
+    }
+
+    async function showTab(key) {
+      document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
+        btn.classList.toggle('active', ['js', 'sprite', 'html', 'manifest'][idx] === key);
+      });
+      const content = await loadFile(key);
+      document.getElementById('code-display').textContent = content;
+    }
+
+    // Initialize with readable js
+    showTab('js');
+  </script>
+</body>
+</html>

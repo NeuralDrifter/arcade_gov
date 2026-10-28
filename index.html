@@ -1,101 +1,55 @@
-<!DOCTYPE html>
-<html lang="en-US">
+<!doctype html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>White House Arcade Archive &amp; Remixes</title>
-  <meta name="description" content="Complete offline archive of the White House arcade.gov games alongside playable anti-fascist protest remixes." />
-  <meta property="og:title" content="White House Arcade Archive &amp; Remixes" />
-  <meta property="og:description" content="Complete offline archive of the White House arcade.gov games alongside playable anti-fascist protest remixes." />
-  <meta property="og:type" content="website" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>White House Arcade — Preserved Public Domain Archive &amp; Anti-Fascist Remixes</title>
+  <meta name="description" content="Offline preservation of all seven whitehouse.gov/arcade games paired with playable counter-propaganda remixes and interactive source code explorer." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --wh-void: #05060f;
-      --wh-ink: #f2f5ff;
-      --wh-dim: #9aa6c8;
+      --wh-bg: #05060f;
+      --wh-card-bg: rgba(18, 24, 53, 0.85);
+      --wh-border: rgba(45, 226, 255, 0.35);
       --wh-red: #ff2d55;
       --wh-blue: #2de2ff;
-      --wh-amber: #ffbe0b;
+      --wh-cyan: #06ffa5;
       --wh-green: #06ffa5;
+      --wh-amber: #ffbe0b;
+      --wh-purple: #a855f7;
+      --wh-dim: #94a3b8;
       --wh-pixel: "Press Start 2P", monospace;
-      --wh-term: "VT323", monospace;
-      --wh-glow-red: 0 0 6px rgba(255, 45, 85, 0.9), 0 0 18px rgba(255, 45, 85, 0.5);
-      --wh-glow-blue: 0 0 6px rgba(45, 226, 255, 0.9), 0 0 18px rgba(45, 226, 255, 0.5);
-      --wh-glow-green: 0 0 6px rgba(6, 255, 165, 0.9), 0 0 18px rgba(6, 255, 165, 0.45);
+      --wh-sans: "Space Grotesk", -apple-system, BlinkMacSystemFont, sans-serif;
+      --wh-glow-blue: 0 0 12px rgba(45, 226, 255, 0.6);
+      --wh-glow-green: 0 0 12px rgba(6, 255, 165, 0.6);
+      --wh-glow-amber: 0 0 12px rgba(255, 190, 11, 0.6);
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      background-color: var(--wh-void);
-      color: var(--wh-ink);
-      font-family: var(--wh-term);
-      min-height: 100vh;
+      padding: 0;
+      background: var(--wh-bg);
+      color: #f1f5f9;
+      font-family: var(--wh-sans);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
     }
 
     .wh-landing {
-      position: relative;
-      isolation: isolate;
-      overflow: hidden;
       min-height: 100vh;
-      padding: clamp(2rem, 5vw, 4rem) clamp(1rem, 4vw, 3rem) clamp(3rem, 6vw, 5rem);
+      padding: clamp(1.5rem, 4vw, 3rem) clamp(1rem, 3vw, 2.5rem);
       background:
-        radial-gradient(120% 80% at 50% 0%, #1a1040 0%, transparent 60%),
-        radial-gradient(100% 70% at 50% 100%, #2a0a2e 0%, transparent 65%), var(--wh-void);
-      color: var(--wh-ink);
-      font-family: var(--wh-term);
-      font-size: 1.2rem;
-      line-height: 1.45;
-      text-align: center;
-    }
-
-    .wh-landing::before {
-      content: "";
-      position: absolute;
-      inset: auto 0 0;
-      z-index: -1;
-      height: 32rem;
-      background:
-        repeating-linear-gradient(
-          to right,
-          transparent 0 calc(5% - 1px),
-          rgba(45, 226, 255, 0.35) calc(5% - 1px) 5%
-        ),
-        repeating-linear-gradient(
-          to bottom,
-          transparent 0 calc(8% - 1px),
-          rgba(255, 45, 85, 0.3) calc(8% - 1px) 8%
-        );
-      transform: perspective(30rem) rotateX(74deg);
-      transform-origin: bottom center;
-      -webkit-mask-image: linear-gradient(to bottom, transparent, #000 45%);
-      mask-image: linear-gradient(to bottom, transparent, #000 45%);
-      pointer-events: none;
-    }
-
-    .wh-landing::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      z-index: 3;
-      background: repeating-linear-gradient(
-        to bottom,
-        rgba(0, 0, 0, 0.22) 0 1px,
-        transparent 1px 3px
-      );
-      opacity: 0.45;
-      pointer-events: none;
+        radial-gradient(ellipse at 50% 0%, rgba(45, 226, 255, 0.12) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 40%, rgba(255, 45, 85, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 20% 80%, rgba(6, 255, 165, 0.08) 0%, transparent 50%),
+        #05060f;
     }
 
     .wh-landing__inner {
-      position: relative;
-      z-index: 1;
       max-width: 1280px;
       margin: 0 auto;
     }
@@ -108,17 +62,19 @@
       text-transform: uppercase;
       color: var(--wh-blue);
       text-shadow: var(--wh-glow-blue);
+      text-align: center;
     }
 
     .wh-landing__title {
       margin: 0;
       font-family: var(--wh-pixel);
-      font-size: clamp(1.6rem, 4vw, 3.6rem);
+      font-size: clamp(1.6rem, 4vw, 3.4rem);
       font-weight: 400;
       letter-spacing: 0.04em;
       line-height: 1.2;
       text-transform: uppercase;
       color: #fff;
+      text-align: center;
       text-shadow:
         0 0 4px #fff,
         0 0 14px rgba(255, 255, 255, 0.6),
@@ -144,140 +100,131 @@
 
     .wh-landing__tagline {
       margin: 0 auto;
-      max-width: 48rem;
-      font-size: clamp(1.15rem, 2.2vw, 1.45rem);
-      letter-spacing: 0.03em;
+      max-width: 52rem;
+      font-size: clamp(1.05rem, 2vw, 1.3rem);
       color: var(--wh-dim);
+      text-align: center;
+    }
+
+    .top-explorer-bar {
+      margin: 2rem auto 3rem;
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-top-explorer {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.85rem 1.6rem;
+      background: rgba(255, 190, 11, 0.12);
+      color: var(--wh-amber);
+      border: 1px solid var(--wh-amber);
+      border-radius: 6px;
+      font-family: var(--wh-pixel);
+      font-size: 0.68rem;
+      letter-spacing: 0.12em;
+      text-decoration: none;
+      text-transform: uppercase;
+      transition: all 0.25s;
+      box-shadow: 0 0 12px rgba(255, 190, 11, 0.25);
+    }
+
+    .btn-top-explorer:hover {
+      background: var(--wh-amber);
+      color: #050714;
+      box-shadow: var(--wh-glow-amber);
+      transform: translateY(-2px);
     }
 
     .section-header {
-      margin: clamp(2.5rem, 5vw, 3.5rem) 0 1.25rem;
+      margin: clamp(2.5rem, 5vw, 3.5rem) 0 1.5rem;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 0.45rem;
+      text-align: center;
     }
 
     .section-badge {
       font-family: var(--wh-pixel);
       font-size: 0.6rem;
       letter-spacing: 0.22em;
-      text-transform: uppercase;
-      padding: 0.45rem 0.9rem;
-      border: 1px solid rgba(6, 255, 165, 0.5);
-      background: rgba(6, 255, 165, 0.08);
-      color: var(--wh-green);
+      color: var(--wh-cyan);
       text-shadow: var(--wh-glow-green);
+      text-transform: uppercase;
     }
 
     .section-badge--orig {
-      border-color: rgba(255, 45, 85, 0.55);
-      background: rgba(255, 45, 85, 0.1);
-      color: #ff6b88;
-      text-shadow: var(--wh-glow-red);
+      color: var(--wh-amber);
+      text-shadow: var(--wh-glow-amber);
     }
 
     .section-title {
-      margin: 0.25rem 0 0;
-      font-family: var(--wh-pixel);
-      font-size: clamp(0.95rem, 2.2vw, 1.4rem);
+      margin: 0;
+      font-size: clamp(1.4rem, 2.8vw, 2.2rem);
+      font-weight: 700;
       color: #fff;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
     }
 
     .section-sub {
       margin: 0;
-      max-width: 44rem;
+      font-size: 1.05rem;
       color: var(--wh-dim);
-      font-size: 1.15rem;
     }
 
     .wh-landing__grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
-      gap: clamp(1.1rem, 2.5vw, 1.6rem);
-      margin: 1.25rem 0 0;
-      padding: 0;
       list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
     }
 
     .wh-card {
-      --wh-edge: linear-gradient(
-        135deg,
-        var(--wh-red) 0%,
-        var(--wh-red) 22%,
-        #fff 50%,
-        var(--wh-blue) 78%,
-        var(--wh-blue) 100%
-      );
       display: flex;
       flex-direction: column;
-      height: 100%;
+      background: var(--wh-card-bg);
+      border: 1px solid var(--wh-border);
+      border-radius: 8px;
       overflow: hidden;
-      border: 2px solid transparent;
-      border-radius: 0.4rem;
-      background:
-        linear-gradient(180deg, rgba(11, 15, 36, 0.9), rgba(5, 6, 15, 0.92)) padding-box,
-        var(--wh-edge) border-box;
-      color: inherit;
-      text-decoration: none;
-      box-shadow:
-        0 0 14px rgba(255, 45, 85, 0.16),
-        0 12px 30px rgba(0, 0, 0, 0.55);
-      transition:
-        transform 0.2s ease,
-        box-shadow 0.2s ease;
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    }
+
+    .wh-card:hover {
+      border-color: var(--wh-blue);
+      box-shadow: 0 0 20px rgba(45, 226, 255, 0.3);
     }
 
     .wh-card--mod {
-      --wh-edge: linear-gradient(
-        135deg,
-        var(--wh-green) 0%,
-        var(--wh-blue) 50%,
-        var(--wh-amber) 100%
-      );
+      border-color: rgba(6, 255, 165, 0.35);
     }
 
-    .wh-card:hover,
-    .wh-card:focus-visible {
-      transform: translateY(-4px);
-      outline: none;
-      box-shadow:
-        0 0 22px rgba(255, 45, 85, 0.4),
-        0 0 40px rgba(45, 226, 255, 0.25),
-        0 16px 36px rgba(0, 0, 0, 0.6);
+    .wh-card--mod:hover {
+      border-color: var(--wh-green);
+      box-shadow: 0 0 20px rgba(6, 255, 165, 0.3);
+    }
+
+    .wh-card__header {
+      padding: 1.1rem 1.25rem 0.5rem;
     }
 
     .wh-card__title {
-      margin: 0;
-      padding: 0.95rem 0.9rem 0.4rem;
-      font-family: var(--wh-pixel);
-      font-size: clamp(0.62rem, 1.3vw, 0.76rem);
-      font-weight: 400;
-      line-height: 1.5;
-      letter-spacing: 0.04em;
-      text-align: center;
-      text-transform: uppercase;
+      margin: 0 0 0.25rem;
+      font-size: 1.25rem;
+      font-weight: 700;
       color: #fff;
-      text-shadow:
-        0 0 8px rgba(255, 45, 85, 0.75),
-        0 0 18px rgba(255, 45, 85, 0.4);
-    }
-
-    .wh-card--mod .wh-card__title {
-      text-shadow:
-        0 0 8px rgba(6, 255, 165, 0.7),
-        0 0 18px rgba(45, 226, 255, 0.4);
     }
 
     .wh-card__subtitle {
       font-family: var(--wh-pixel);
-      font-size: 0.48rem;
-      letter-spacing: 0.14em;
+      font-size: 0.52rem;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: var(--wh-amber);
-      padding-bottom: 0.65rem;
+      color: var(--wh-dim);
     }
 
     .wh-card__frame {
@@ -285,11 +232,11 @@
       width: 100%;
       aspect-ratio: 16 / 9;
       overflow: hidden;
-      border-top: 1px solid rgba(255, 45, 85, 0.55);
-      border-bottom: 1px solid rgba(45, 226, 255, 0.55);
+      border-top: 1px solid rgba(255, 45, 85, 0.4);
+      border-bottom: 1px solid rgba(45, 226, 255, 0.4);
       background:
-        repeating-linear-gradient(90deg, transparent 0 14px, rgba(45, 226, 255, 0.12) 14px 15px),
-        repeating-linear-gradient(0deg, transparent 0 14px, rgba(255, 45, 85, 0.1) 14px 15px),
+        repeating-linear-gradient(90deg, transparent 0 14px, rgba(45, 226, 255, 0.1) 14px 15px),
+        repeating-linear-gradient(0deg, transparent 0 14px, rgba(255, 45, 85, 0.08) 14px 15px),
         linear-gradient(160deg, #16113a, #2a0a2e);
       display: flex;
       align-items: center;
@@ -301,7 +248,6 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
-      image-rendering: pixelated;
     }
 
     .cabinet-preview {
@@ -311,20 +257,19 @@
       justify-content: center;
       gap: 0.45rem;
       padding: 1rem;
-      width: 100%;
-      height: 100%;
+      text-align: center;
     }
 
     .cabinet-preview__icon {
       font-family: var(--wh-pixel);
-      font-size: 1.5rem;
+      font-size: 1.2rem;
       color: var(--wh-amber);
-      text-shadow: 0 0 12px rgba(255, 190, 11, 0.7);
+      text-shadow: var(--wh-glow-amber);
     }
 
     .cabinet-preview__tag {
       font-family: var(--wh-pixel);
-      font-size: 0.55rem;
+      font-size: 0.52rem;
       letter-spacing: 0.16em;
       color: var(--wh-blue);
       text-transform: uppercase;
@@ -335,37 +280,80 @@
       display: flex;
       flex: 1;
       flex-direction: column;
-      gap: 0.5rem;
-      padding: 0.95rem 1.1rem 1.15rem;
-      text-align: center;
+      padding: 1rem 1.25rem 1.25rem;
     }
 
     .wh-card__blurb {
-      margin: 0;
-      font-size: 1.1rem;
-      line-height: 1.3;
+      margin: 0 0 1.25rem;
+      font-size: 0.98rem;
+      line-height: 1.45;
       color: var(--wh-dim);
     }
 
-    .wh-card__cta {
+    .wh-card__actions {
+      display: flex;
+      gap: 0.65rem;
+      align-items: center;
       margin-top: auto;
-      padding-top: 0.75rem;
-      font-family: var(--wh-pixel);
-      font-size: 0.55rem;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: var(--wh-blue);
-      text-shadow: var(--wh-glow-blue);
     }
 
-    .wh-card--mod .wh-card__cta {
+    .btn-action {
+      font-family: var(--wh-pixel);
+      font-size: 0.5rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.65rem 0.85rem;
+      border-radius: 4px;
+      text-decoration: none;
+      font-weight: 700;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      flex: 1;
+    }
+
+    .btn-action--play {
+      background: rgba(45, 226, 255, 0.15);
+      color: var(--wh-blue);
+      border: 1px solid var(--wh-blue);
+    }
+
+    .btn-action--play:hover {
+      background: var(--wh-blue);
+      color: #050714;
+      box-shadow: var(--wh-glow-blue);
+    }
+
+    .wh-card--mod .btn-action--play {
+      background: rgba(6, 255, 165, 0.15);
       color: var(--wh-green);
-      text-shadow: var(--wh-glow-green);
+      border: 1px solid var(--wh-green);
+    }
+
+    .wh-card--mod .btn-action--play:hover {
+      background: var(--wh-green);
+      color: #050714;
+      box-shadow: var(--wh-glow-green);
+    }
+
+    .btn-action--code {
+      background: rgba(255, 190, 11, 0.12);
+      color: var(--wh-amber);
+      border: 1px solid rgba(255, 190, 11, 0.4);
+      flex: 1;
+    }
+
+    .btn-action--code:hover {
+      background: var(--wh-amber);
+      color: #050714;
+      box-shadow: var(--wh-glow-amber);
     }
 
     .archive-links {
-      margin-top: 3rem;
-      padding-top: 1.5rem;
+      margin-top: 3.5rem;
+      padding-top: 1.75rem;
       border-top: 1px solid rgba(45, 226, 255, 0.25);
       display: flex;
       flex-wrap: wrap;
@@ -379,15 +367,16 @@
     .archive-links a {
       color: var(--wh-dim);
       text-decoration: none;
-      padding: 0.6rem 1rem;
+      padding: 0.65rem 1.1rem;
       border: 1px solid rgba(154, 166, 200, 0.35);
       background: rgba(11, 15, 36, 0.7);
+      border-radius: 4px;
       transition: border-color 0.2s, color 0.2s;
     }
 
     .archive-links a:hover {
       color: #fff;
-      border-color: var(--wh-blue);
+      border-color: var(--wh-cyan);
     }
   </style>
 </head>
@@ -398,8 +387,14 @@
       <h1 class="wh-landing__title">WHITE HOUSE ARCADE</h1>
       <hr class="wh-landing__rule" />
       <p class="wh-landing__tagline">
-        Complete source capture of the seven games shipped on whitehouse.gov/arcade (arcade.gov), paired with playable anti-fascist remixes that flip each game&rsquo;s message around.
+        Complete source capture of all seven games shipped on whitehouse.gov/arcade (arcade.gov), paired with playable anti-fascist remixes that flip each game&rsquo;s message around.
       </p>
+
+      <div class="top-explorer-bar">
+        <a class="btn-top-explorer" href="/wh-arcade/source/explorer.html?game=red-scare&mode=orig">
+          &lt;/&gt; Open Universal Source Code Explorer
+        </a>
+      </div>
 
       <!-- SECTION 1: ANTI-FASCIST REMIXES -->
       <div class="section-header">
@@ -409,114 +404,136 @@
       </div>
 
       <ul class="wh-landing__grid">
-        <li>
-          <a class="wh-card wh-card--mod" href="/anti-fascist%20games/standalone/red-scare.html">
+        <!-- MOD 1: Red Scare -->
+        <li class="wh-card wh-card--mod">
+          <div class="wh-card__header">
             <h3 class="wh-card__title">Fascist Scare: Midnight Run</h3>
             <div class="wh-card__subtitle">Mod of Red Scare (WebGL 3D)</div>
-            <div class="wh-card__frame">
-              <div class="cabinet-preview">
-                <span class="cabinet-preview__icon">[ 3D RESIST ]</span>
-                <span class="cabinet-preview__tag">Police State Escape</span>
-              </div>
+          </div>
+          <div class="wh-card__frame">
+            <img src="/Red_Scare_gameplay.png" alt="Fascist Scare: Midnight Run gameplay" />
+          </div>
+          <div class="wh-card__body">
+            <p class="wh-card__blurb">Outrun authoritarian ICE checkpoints, weaponized DOJ trials, and billionaire tax havens. Defend civil liberties with First Amendment shields.</p>
+            <div class="wh-card__actions">
+              <a class="btn-action btn-action--play" href="/anti-fascist%20games/standalone/red-scare.html">Play Remix &rsaquo;</a>
+              <a class="btn-action btn-action--code" href="/wh-arcade/source/explorer.html?game=red-scare&mode=mod">&lt;/&gt; Inspect Code</a>
             </div>
-            <div class="wh-card__body">
-              <p class="wh-card__blurb">Outrun authoritarian ICE checkpoints, weaponized DOJ trials, and billionaire tax havens. Defend civil liberties with First Amendment shields.</p>
-              <span class="wh-card__cta">Play Remix &rsaquo;</span>
-            </div>
-          </a>
+          </div>
         </li>
 
-        <li>
-          <a class="wh-card wh-card--mod" href="/anti-fascist%20games/standalone/build-the-wall.html">
+        <!-- MOD 2: Build the Wall -->
+        <li class="wh-card wh-card--mod">
+          <div class="wh-card__header">
             <h3 class="wh-card__title">Stop the Insurrection</h3>
             <div class="wh-card__subtitle">Mod of Build the Wall</div>
-            <div class="wh-card__frame">
-              <img src="/Stop_The_Insurrection_gameplay.png" alt="Stop the Insurrection gameplay" />
+          </div>
+          <div class="wh-card__frame">
+            <img src="/Stop_The_Insurrection_gameplay.png" alt="Stop the Insurrection gameplay" />
+          </div>
+          <div class="wh-card__body">
+            <p class="wh-card__blurb">Defend the Capitol from a wave of Jan 6 insurrectionists with 12 classic pentominoes and cascading color-match barricades.</p>
+            <div class="wh-card__actions">
+              <a class="btn-action btn-action--play" href="/anti-fascist%20games/standalone/build-the-wall.html">Play Remix &rsaquo;</a>
+              <a class="btn-action btn-action--code" href="/wh-arcade/source/explorer.html?game=build-the-wall&mode=mod">&lt;/&gt; Inspect Code</a>
             </div>
-            <div class="wh-card__body">
-              <p class="wh-card__blurb">Defend the Capitol from a wave of Jan 6 insurrectionists with 12 classic pentominoes and cascading color-match barricades.</p>
-              <span class="wh-card__cta">Play Remix &rsaquo;</span>
-            </div>
-          </a>
+          </div>
         </li>
 
-        <li>
-          <a class="wh-card wh-card--mod" href="/anti-fascist%20games/standalone/trump-savings-tycoon.html">
+        <!-- MOD 3: Trump Savings Tycoon -->
+        <li class="wh-card wh-card--mod">
+          <div class="wh-card__header">
             <h3 class="wh-card__title">Trump Corruption Tycoon</h3>
             <div class="wh-card__subtitle">Mod of Trump Savings Tycoon</div>
-            <div class="wh-card__frame">
-              <img src="/Trump_Corruption_Tycoon_Gameplay.png" alt="Trump Corruption Tycoon gameplay" />
+          </div>
+          <div class="wh-card__frame">
+            <img src="/Trump_Corruption_Tycoon_Gameplay.png" alt="Trump Corruption Tycoon gameplay" />
+          </div>
+          <div class="wh-card__body">
+            <p class="wh-card__blurb">Catch his bribes with a giant net before they escape. Recover Air Force One, dodge penalties, and click the reflecting pool.</p>
+            <div class="wh-card__actions">
+              <a class="btn-action btn-action--play" href="/anti-fascist%20games/standalone/trump-savings-tycoon.html">Play Remix &rsaquo;</a>
+              <a class="btn-action btn-action--code" href="/wh-arcade/source/explorer.html?game=trump-savings-tycoon&mode=mod">&lt;/&gt; Inspect Code</a>
             </div>
-            <div class="wh-card__body">
-              <p class="wh-card__blurb">Catch his bribes with a giant net before they escape. Recover Air Force One, dodge penalties, and click the reflecting pool.</p>
-              <span class="wh-card__cta">Play Remix &rsaquo;</span>
-            </div>
-          </a>
+          </div>
         </li>
 
-        <li>
-          <a class="wh-card wh-card--mod" href="/anti-fascist%20games/standalone/rio-run.html">
+        <!-- MOD 4: Rio Run -->
+        <li class="wh-card wh-card--mod">
+          <div class="wh-card__header">
             <h3 class="wh-card__title">Perp Walk</h3>
             <div class="wh-card__subtitle">Mod of Rio Run</div>
-            <div class="wh-card__frame">
-              <div class="cabinet-preview">
-                <span class="cabinet-preview__icon">[ WARRANT ]</span>
-                <span class="cabinet-preview__tag">Snake-Style Roundup</span>
-              </div>
+          </div>
+          <div class="wh-card__frame">
+            <div class="cabinet-preview">
+              <span class="cabinet-preview__icon">[ WARRANT ]</span>
+              <span class="cabinet-preview__tag">Snake-Style Roundup</span>
             </div>
-            <div class="wh-card__body">
-              <p class="wh-card__blurb">Serve warrants and round up the whole administration along the line—Vance, Miller, Noem, Hegseth, Patel, and Trump.</p>
-              <span class="wh-card__cta">Play Remix &rsaquo;</span>
+          </div>
+          <div class="wh-card__body">
+            <p class="wh-card__blurb">Serve warrants and round up the whole administration along the line—Vance, Miller, Noem, Hegseth, Patel, and Trump.</p>
+            <div class="wh-card__actions">
+              <a class="btn-action btn-action--play" href="/anti-fascist%20games/standalone/rio-run.html">Play Remix &rsaquo;</a>
+              <a class="btn-action btn-action--code" href="/wh-arcade/source/explorer.html?game=rio-run&mode=mod">&lt;/&gt; Inspect Code</a>
             </div>
-          </a>
+          </div>
         </li>
 
-        <li>
-          <a class="wh-card wh-card--mod" href="/anti-fascist%20games/standalone/socialism.html">
+        <!-- MOD 5: Socialism -->
+        <li class="wh-card wh-card--mod">
+          <div class="wh-card__header">
             <h3 class="wh-card__title">The Cost of Trump</h3>
             <div class="wh-card__subtitle">Mod of Escape From Socialism</div>
-            <div class="wh-card__frame">
-              <img src="/wh-arcade/assets/socialism/flip.jpg" alt="The Cost of Trump card game" />
+          </div>
+          <div class="wh-card__frame">
+            <img src="/wh-arcade/assets/socialism/flip.jpg" alt="The Cost of Trump card game" />
+          </div>
+          <div class="wh-card__body">
+            <p class="wh-card__blurb">All 23 matching pairs show the original CEA claim word-for-word, then answer it with sourced numbers from his actual record.</p>
+            <div class="wh-card__actions">
+              <a class="btn-action btn-action--play" href="/anti-fascist%20games/standalone/socialism.html">Play Remix &rsaquo;</a>
+              <a class="btn-action btn-action--code" href="/wh-arcade/source/explorer.html?game=socialism&mode=mod">&lt;/&gt; Inspect Code</a>
             </div>
-            <div class="wh-card__body">
-              <p class="wh-card__blurb">All 23 matching pairs show the original CEA claim word-for-word, then answer it with sourced numbers from his actual record.</p>
-              <span class="wh-card__cta">Play Remix &rsaquo;</span>
-            </div>
-          </a>
+          </div>
         </li>
 
-        <li>
-          <a class="wh-card wh-card--mod" href="/anti-fascist%20games/standalone/flappy-bill.html">
+        <!-- MOD 6: Flappy Bill -->
+        <li class="wh-card wh-card--mod">
+          <div class="wh-card__header">
             <h3 class="wh-card__title">Flappy Bill</h3>
             <div class="wh-card__subtitle">National Mall Edition</div>
-            <div class="wh-card__frame">
-              <div class="cabinet-preview">
-                <span class="cabinet-preview__icon">[ BILL ]</span>
-                <span class="cabinet-preview__tag">Monument Flyer</span>
-              </div>
+          </div>
+          <div class="wh-card__frame">
+            <img src="/Flappy_Bill_gameplay.png" alt="Flappy Bill gameplay" />
+          </div>
+          <div class="wh-card__body">
+            <p class="wh-card__blurb">Keep the bill in the air while flying past Washington monuments down the National Mall.</p>
+            <div class="wh-card__actions">
+              <a class="btn-action btn-action--play" href="/anti-fascist%20games/standalone/flappy-bill.html">Play Remix &rsaquo;</a>
+              <a class="btn-action btn-action--code" href="/wh-arcade/source/explorer.html?game=flappy-bill&mode=mod">&lt;/&gt; Inspect Code</a>
             </div>
-            <div class="wh-card__body">
-              <p class="wh-card__blurb">Keep the bill in the air while flying past Washington monuments down the National Mall.</p>
-              <span class="wh-card__cta">Play Remix &rsaquo;</span>
-            </div>
-          </a>
+          </div>
         </li>
 
-        <li>
-          <a class="wh-card wh-card--mod" href="/anti-fascist%20games/standalone/supply-line.html">
+        <!-- MOD 7: Supply Line -->
+        <li class="wh-card wh-card--mod">
+          <div class="wh-card__header">
             <h3 class="wh-card__title">Supply Line</h3>
             <div class="wh-card__subtitle">Conveyor Satire</div>
-            <div class="wh-card__frame">
-              <div class="cabinet-preview">
-                <span class="cabinet-preview__icon">[ CONVEYOR ]</span>
-                <span class="cabinet-preview__tag">Food Safety Line</span>
-              </div>
+          </div>
+          <div class="wh-card__frame">
+            <div class="cabinet-preview">
+              <span class="cabinet-preview__icon">[ CONVEYOR ]</span>
+              <span class="cabinet-preview__tag">Food Safety Line</span>
             </div>
-            <div class="wh-card__body">
-              <p class="wh-card__blurb">Food-safety conveyor satire: bare food rides, treated food comes off. Decide what stays on the line.</p>
-              <span class="wh-card__cta">Play Remix &rsaquo;</span>
+          </div>
+          <div class="wh-card__body">
+            <p class="wh-card__blurb">Food-safety conveyor satire: bare food rides, treated food comes off. Decide what stays on the line.</p>
+            <div class="wh-card__actions">
+              <a class="btn-action btn-action--play" href="/anti-fascist%20games/standalone/supply-line.html">Play Remix &rsaquo;</a>
+              <a class="btn-action btn-action--code" href="/wh-arcade/source/explorer.html?game=supply-line&mode=mod">&lt;/&gt; Inspect Code</a>
             </div>
-          </a>
+          </div>
         </li>
       </ul>
 
@@ -528,124 +545,149 @@
       </div>
 
       <ul class="wh-landing__grid">
-        <li>
-          <a class="wh-card" href="/wh-arcade/standalone/red-scare.html">
+        <!-- ORIG 1: Red Scare -->
+        <li class="wh-card">
+          <div class="wh-card__header">
             <h3 class="wh-card__title">Red Scare: Midnight Run</h3>
             <div class="wh-card__subtitle">Captured 2026-10-27 (WebGL 3D)</div>
-            <div class="wh-card__frame">
-              <div class="cabinet-preview">
-                <span class="cabinet-preview__icon">[ 3D RUNNER ]</span>
-                <span class="cabinet-preview__tag">Midnight Run Archive</span>
-              </div>
+          </div>
+          <div class="wh-card__frame">
+            <img src="/Red_Scare_gameplay.png" alt="Red Scare: Midnight Run gameplay" />
+          </div>
+          <div class="wh-card__body">
+            <p class="wh-card__blurb">Seventh arcade.gov game captured Oct 2026. Full offline WebGL 3D runner with embedded models, textures, and audio.</p>
+            <div class="wh-card__actions">
+              <a class="btn-action btn-action--play" href="/wh-arcade/standalone/red-scare.html">Play Original &rsaquo;</a>
+              <a class="btn-action btn-action--code" href="/wh-arcade/source/explorer.html?game=red-scare&mode=orig">&lt;/&gt; Inspect Code</a>
             </div>
-            <div class="wh-card__body">
-              <p class="wh-card__blurb">Seventh arcade.gov game captured Oct 2026. Full offline WebGL 3D runner with embedded models, textures, and audio.</p>
-              <span class="wh-card__cta">Play Original &rsaquo;</span>
-            </div>
-          </a>
+          </div>
         </li>
 
-        <li>
-          <a class="wh-card" href="/wh-arcade/standalone/build-the-wall.html">
+        <!-- ORIG 2: Build the Wall -->
+        <li class="wh-card">
+          <div class="wh-card__header">
             <h3 class="wh-card__title">Build the Wall</h3>
-            <div class="wh-card__subtitle">Original Capture</div>
-            <div class="wh-card__frame">
-              <div class="cabinet-preview">
-                <span class="cabinet-preview__icon">[ WALL ]</span>
-                <span class="cabinet-preview__tag">Border Siege</span>
-              </div>
+            <div class="wh-card__subtitle">Source Code Explorer &amp; Legal Notice</div>
+          </div>
+          <div class="wh-card__frame">
+            <div class="cabinet-preview">
+              <span class="cabinet-preview__icon">[ AUDIT ]</span>
+              <span class="cabinet-preview__tag">Source &amp; Legal Notice</span>
             </div>
-            <div class="wh-card__body">
-              <p class="wh-card__blurb">Original block-stacking game as published on whitehouse.gov/arcade/build-the-wall/.</p>
-              <span class="wh-card__cta">Play Original &rsaquo;</span>
+          </div>
+          <div class="wh-card__body">
+            <p class="wh-card__blurb">Front-end gameplay disconnected due to Tetris copyright concerns. Source code preserved locally for audit under 17 U.S.C. &sect; 105.</p>
+            <div class="wh-card__actions">
+              <a class="btn-action btn-action--code" href="/wh-arcade/source/build-the-wall.html" style="width:100%">&lt;/&gt; Inspect Source &amp; Audit Notice &rsaquo;</a>
             </div>
-          </a>
+          </div>
         </li>
 
-        <li>
-          <a class="wh-card" href="/wh-arcade/standalone/trump-savings-tycoon.html">
+        <!-- ORIG 3: Trump Savings Tycoon -->
+        <li class="wh-card">
+          <div class="wh-card__header">
             <h3 class="wh-card__title">Trump Savings Tycoon</h3>
             <div class="wh-card__subtitle">Original Capture</div>
-            <div class="wh-card__frame">
-              <div class="cabinet-preview">
-                <span class="cabinet-preview__icon">[ $$$ ]</span>
-                <span class="cabinet-preview__tag">Trump Accounts</span>
-              </div>
+          </div>
+          <div class="wh-card__frame">
+            <div class="cabinet-preview">
+              <span class="cabinet-preview__icon">[ $$$ ]</span>
+              <span class="cabinet-preview__tag">Trump Accounts</span>
             </div>
-            <div class="wh-card__body">
-              <p class="wh-card__blurb">Original coin-catching game promoting Trump Accounts on whitehouse.gov/arcade/.</p>
-              <span class="wh-card__cta">Play Original &rsaquo;</span>
+          </div>
+          <div class="wh-card__body">
+            <p class="wh-card__blurb">Original coin-catching game promoting Trump Accounts on whitehouse.gov/arcade/.</p>
+            <div class="wh-card__actions">
+              <a class="btn-action btn-action--play" href="/wh-arcade/standalone/trump-savings-tycoon.html">Play Original &rsaquo;</a>
+              <a class="btn-action btn-action--code" href="/wh-arcade/source/explorer.html?game=trump-savings-tycoon&mode=orig">&lt;/&gt; Inspect Code</a>
             </div>
-          </a>
+          </div>
         </li>
 
-        <li>
-          <a class="wh-card" href="/wh-arcade/standalone/rio-run.html">
+        <!-- ORIG 4: Rio Run -->
+        <li class="wh-card">
+          <div class="wh-card__header">
             <h3 class="wh-card__title">Rio Run</h3>
             <div class="wh-card__subtitle">Original Capture</div>
-            <div class="wh-card__frame">
-              <div class="cabinet-preview">
-                <span class="cabinet-preview__icon">[ RIO ]</span>
-                <span class="cabinet-preview__tag">Border Patrol</span>
-              </div>
+          </div>
+          <div class="wh-card__frame">
+            <div class="cabinet-preview">
+              <span class="cabinet-preview__icon">[ RIO ]</span>
+              <span class="cabinet-preview__tag">Border Patrol</span>
             </div>
-            <div class="wh-card__body">
-              <p class="wh-card__blurb">Original snake-style game along the Rio Grande as shipped on whitehouse.gov/arcade/rio-run/.</p>
-              <span class="wh-card__cta">Play Original &rsaquo;</span>
+          </div>
+          <div class="wh-card__body">
+            <p class="wh-card__blurb">Original snake-style game along the Rio Grande as shipped on whitehouse.gov/arcade/rio-run/.</p>
+            <div class="wh-card__actions">
+              <a class="btn-action btn-action--play" href="/wh-arcade/standalone/rio-run.html">Play Original &rsaquo;</a>
+              <a class="btn-action btn-action--code" href="/wh-arcade/source/explorer.html?game=rio-run&mode=orig">&lt;/&gt; Inspect Code</a>
             </div>
-          </a>
+          </div>
         </li>
 
-        <li>
-          <a class="wh-card" href="/wh-arcade/standalone/socialism.html">
+        <!-- ORIG 5: Socialism -->
+        <li class="wh-card">
+          <div class="wh-card__header">
             <h3 class="wh-card__title">Escape From Socialism</h3>
             <div class="wh-card__subtitle">Original Capture</div>
-            <div class="wh-card__frame">
-              <img src="/wh-arcade/assets/socialism/flip.jpg" alt="Escape From Socialism" />
+          </div>
+          <div class="wh-card__frame">
+            <img src="/wh-arcade/assets/socialism/flip.jpg" alt="Escape From Socialism" />
+          </div>
+          <div class="wh-card__body">
+            <p class="wh-card__blurb">Original 23-pair card-matching game citing the CEA report on socialism, with local PDF copy preserved.</p>
+            <div class="wh-card__actions">
+              <a class="btn-action btn-action--play" href="/wh-arcade/standalone/socialism.html">Play Original &rsaquo;</a>
+              <a class="btn-action btn-action--code" href="/wh-arcade/source/explorer.html?game=socialism&mode=orig">&lt;/&gt; Inspect Code</a>
             </div>
-            <div class="wh-card__body">
-              <p class="wh-card__blurb">Original 23-pair card-matching game citing the CEA report on socialism, with local PDF copy preserved.</p>
-              <span class="wh-card__cta">Play Original &rsaquo;</span>
-            </div>
-          </a>
+          </div>
         </li>
 
-        <li>
-          <a class="wh-card" href="/wh-arcade/standalone/flappy-bill.html">
+        <!-- ORIG 6: Flappy Bill -->
+        <li class="wh-card">
+          <div class="wh-card__header">
             <h3 class="wh-card__title">Flappy Bill</h3>
             <div class="wh-card__subtitle">Original Capture</div>
-            <div class="wh-card__frame">
-              <div class="cabinet-preview">
-                <span class="cabinet-preview__icon">[ EAGLE ]</span>
-                <span class="cabinet-preview__tag">National Mall</span>
-              </div>
+          </div>
+          <div class="wh-card__frame">
+            <div class="cabinet-preview">
+              <span class="cabinet-preview__icon">[ EAGLE ]</span>
+              <span class="cabinet-preview__tag">National Mall</span>
             </div>
-            <div class="wh-card__body">
-              <p class="wh-card__blurb">Original bald eagle flyer game as shipped on whitehouse.gov/arcade/flappy-bill/.</p>
-              <span class="wh-card__cta">Play Original &rsaquo;</span>
+          </div>
+          <div class="wh-card__body">
+            <p class="wh-card__blurb">Original bald eagle flyer game as shipped on whitehouse.gov/arcade/flappy-bill/.</p>
+            <div class="wh-card__actions">
+              <a class="btn-action btn-action--play" href="/wh-arcade/standalone/flappy-bill.html">Play Original &rsaquo;</a>
+              <a class="btn-action btn-action--code" href="/wh-arcade/source/explorer.html?game=flappy-bill&mode=orig">&lt;/&gt; Inspect Code</a>
             </div>
-          </a>
+          </div>
         </li>
 
-        <li>
-          <a class="wh-card" href="/wh-arcade/standalone/supply-line.html">
+        <!-- ORIG 7: Supply Line -->
+        <li class="wh-card">
+          <div class="wh-card__header">
             <h3 class="wh-card__title">Supply Line</h3>
             <div class="wh-card__subtitle">Original Capture</div>
-            <div class="wh-card__frame">
-              <div class="cabinet-preview">
-                <span class="cabinet-preview__icon">[ MAHA ]</span>
-                <span class="cabinet-preview__tag">School Lunch Sort</span>
-              </div>
+          </div>
+          <div class="wh-card__frame">
+            <div class="cabinet-preview">
+              <span class="cabinet-preview__icon">[ MAHA ]</span>
+              <span class="cabinet-preview__tag">School Lunch Sort</span>
             </div>
-            <div class="wh-card__body">
-              <p class="wh-card__blurb">Original MAHA school lunch conveyor game as shipped on whitehouse.gov/arcade/supply-line/.</p>
-              <span class="wh-card__cta">Play Original &rsaquo;</span>
+          </div>
+          <div class="wh-card__body">
+            <p class="wh-card__blurb">Original MAHA school lunch conveyor game as shipped on whitehouse.gov/arcade/supply-line/.</p>
+            <div class="wh-card__actions">
+              <a class="btn-action btn-action--play" href="/wh-arcade/standalone/supply-line.html">Play Original &rsaquo;</a>
+              <a class="btn-action btn-action--code" href="/wh-arcade/source/explorer.html?game=supply-line&mode=orig">&lt;/&gt; Inspect Code</a>
             </div>
-          </a>
+          </div>
         </li>
       </ul>
 
       <div class="archive-links">
+        <a href="/wh-arcade/source/explorer.html?game=red-scare&mode=orig">&lt;/&gt; Open Universal Source Code Explorer</a>
         <a href="/wh-arcade/pages/index.html">View Raw Captured whitehouse.gov/arcade/ Index HTML</a>
         <a href="/wh-arcade/assets/socialism/The-Real-Cost-of-Socialism-In-America-Summary.pdf" target="_blank" rel="noopener">CEA Socialism Report PDF Archive</a>
         <a href="/wh-arcade/asset-manifest.json" target="_blank" rel="noopener">SHA-256 Asset Manifest</a>
